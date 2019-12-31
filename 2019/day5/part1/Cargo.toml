@@ -1,0 +1,5 @@
+[package]
+name = "day5_part1"
+version = "0.1.0"
+authors = ["Daniel Power <me@danielpower.ca>"]
+edition = "2018"
