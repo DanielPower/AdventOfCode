@@ -12,7 +12,7 @@ const slopes = [
 const filename = path.join(Deno.cwd(), "input.txt");
 const fileReader = await Deno.open(filename);
 let y = 0;
-for await (let line of readLines(fileReader)) {
+for await (const line of readLines(fileReader)) {
   slopes.forEach((slope) => {
     if (y % slope.vy === 0) {
       if (line[slope.x] === "#") {

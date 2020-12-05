@@ -37,10 +37,9 @@ for await (const line of readLines(fileReader)) {
       !fieldValidators.find(
         ([key, validator]) => {
           console.log(key, passport, passport?.[key] && validator(passport[key]));
-          return !passport[key] || !validator(passport[key])
+          return !passport[key] || !validator(passport[key]);
         })
-      )
-    {
+    ) {
       validPassports += 1;
     }
     passport = {};
