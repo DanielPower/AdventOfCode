@@ -1,42 +1,37 @@
 import { readLines } from "https://deno.land/std/io/mod.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
 
-type Instruction = [string, number];
+type Operation = "nop" | "acc" | "jmp";
 
 const filename = path.join(Deno.cwd(), "input.txt");
 const fileReader = await Deno.open(filename);
-
+const instructions: [Operation, number][] = [];
+const completeInstructions = new Set();
 let instructionCounter = 0;
 let accumulator = 0;
-const instructions: Instruction[] = [];
 
 for await (const line of readLines(fileReader)) {
   const [operation, value] = line.split(" ");
-  instructions.push([operation, parseInt(value, 10)]);
+  instructions.push([operation as Operation, parseInt(value, 10)]);
 }
-
-const completeInstructions = new Set();
 
 while (true) {
   const [operation, value] = instructions[instructionCounter];
-  console.log(operation, value);
   if (completeInstructions.has(instructionCounter)) {
     console.log(accumulator);
     break;
   }
   completeInstructions.add(instructionCounter);
-  switch (operation) {
-    case "nop": {
+  ({
+    nop: (): void => {
       instructionCounter += 1;
-      break;
-    }
-    case "acc": {
+    },
+    acc: (): void => {
       accumulator += value;
       instructionCounter += 1;
-      break;
-    }
-    case "jmp": {
+    },
+    jmp: (): void => {
       instructionCounter += value;
-    }
-  }
+    },
+  }[operation]());
 }
