@@ -1,10 +1,12 @@
 module Main where
 
 import Day1
+import Day2
 import System.Environment
 
 days =
-  [ ("day1.txt", [Day1.part1, Day1.part2])
+  [ ("day1.txt", [Day1.part1, Day1.part2]),
+    ("day2.txt", [Day2.part1, Day2.part2])
   ]
 
 main :: IO ()
@@ -14,4 +16,4 @@ main = do
   let (file, solutions) = days !! day
   let part = (read (args !! 1) :: Int) - 1
   let solution = solutions !! part
-  solution (readFile file)
+  solution (readFile ("inputs/" ++ file))

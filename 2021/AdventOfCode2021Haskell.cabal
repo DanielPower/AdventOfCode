@@ -26,6 +26,8 @@ source-repository head
 library
   exposed-modules:
       Day1
+      Day2
+      DayX
   other-modules:
       Paths_AdventOfCode2021Haskell
   hs-source-dirs:
