@@ -20,7 +20,7 @@ flipBit x
   | otherwise = x
 
 binToDec :: String -> Int
-binToDec = foldl' (\acc x -> acc * 2 + digitToInt x) 0
+binToDec = foldl' (\acc x -> acc * 2 + digitToInt x) 0 -- Source: https://stackoverflow.com/a/26961027
 
 part1 :: IO String -> IO ()
 part1 input = do
