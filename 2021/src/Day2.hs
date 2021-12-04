@@ -25,10 +25,22 @@ part1 input = do
   inputLines <- lines <$> input
   let inputWords = map words inputLines
   let inputPairs = map parseInputWords inputWords
-  let (distance, depth) = displacement inputPairs
-  print (distance * depth)
+  let (horizontal, depth) = displacement inputPairs
+  print (horizontal * depth)
+
+displacement2 :: Int -> [(String, Int)] -> (Int, Int)
+displacement2 aim [] = (0, 0)
+displacement2 aim ((direction, value) : xs)
+  | direction == "down" = addPair (0, 0) (displacement2 (aim + value) xs)
+  | direction == "up" = addPair (0, 0) (displacement2 (aim - value) xs)
+  | direction == "forward" = addPair (value, value * aim) (displacement2 aim xs)
+  | direction == "backward" = addPair (- value, - (value * aim)) (displacement2 aim xs)
+  | otherwise = displacement xs
 
 part2 :: IO String -> IO ()
 part2 input = do
   inputLines <- lines <$> input
-  print "Not implemented"
+  let inputWords = map words inputLines
+  let inputPairs = map parseInputWords inputWords
+  let (horizontal, depth) = displacement2 0 inputPairs
+  print (horizontal * depth)
