@@ -1,12 +1,14 @@
+-- This one is supper inefficient. But it works. And that's enough for me.
 module Day4
   ( part1,
     part2,
   )
 where
 
-import Data.List.Split (splitWhen)
 import Data.List (find)
-import Data.Maybe (isJust, fromJust)
+import Data.List.Split (splitWhen)
+import Data.Maybe (fromJust, isJust)
+import Debug.Trace (trace)
 
 bingoLines :: [[(Int, Int)]]
 bingoLines =
@@ -46,20 +48,35 @@ letTheDabBegin boards numbers lastNumber
   | isJust (find checkBoardWin boards) = (fromJust (find checkBoardWin boards), lastNumber)
   | otherwise = letTheDabBegin (dabBoards boards (head numbers)) (tail numbers) (head numbers)
 
+letTheDabBegin2 :: [[Int]] -> [Int] -> Int -> Maybe [Int] -> ([Int], Int)
+letTheDabBegin2 boards numbers lastNumber lastWinner
+  | null boards = (fromJust lastWinner, lastNumber)
+  | otherwise = do
+    let dabbedBoards = dabBoards boards (head numbers)
+    let filteredBoards = filter (not . checkBoardWin) dabbedBoards
+    let winner = find checkBoardWin dabbedBoards
+    letTheDabBegin2 filteredBoards (tail numbers) (head numbers) winner
+
 calculateScore :: [Int] -> Int -> Int
-calculateScore board number = sum (filter (>0) board) * number
+calculateScore board number = sum (filter (> 0) board) * number
 
 part1 :: IO String -> IO ()
 part1 input = do
   inputLines <- lines <$> input
-  let numbers = map (read::String->Int) (wordsWhen (== ',') (head inputLines))
+  let numbers = map (read :: String -> Int) (wordsWhen (== ',') (head inputLines))
   let boardLines = tail (tail inputLines)
   let boards = map (concatMap (wordsWhen (== ' '))) (splitWhen (== "") boardLines)
-  let boards' = map (map (read::String->Int)) boards
+  let boards' = map (map (read :: String -> Int)) boards
   let (winningBoard, winningNumber) = letTheDabBegin boards' numbers 0
   print (calculateScore winningBoard winningNumber)
 
 part2 :: IO String -> IO ()
 part2 input = do
   inputLines <- lines <$> input
-  print "Not implemented"
+  let numbers = map (read :: String -> Int) (wordsWhen (== ',') (head inputLines))
+  let boardLines = tail (tail inputLines)
+  let boards = map (concatMap (wordsWhen (== ' '))) (splitWhen (== "") boardLines)
+  let boards' = map (map (read :: String -> Int)) boards
+  let (winningBoard, winningNumber) = letTheDabBegin2 boards' numbers 0 Nothing
+  print (winningBoard, winningNumber)
+  print (calculateScore winningBoard winningNumber)
