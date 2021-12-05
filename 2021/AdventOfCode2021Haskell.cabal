@@ -28,6 +28,8 @@ library
       Day1
       Day2
       Day3
+      Day4
+      Day5
       DayX
   other-modules:
       Paths_AdventOfCode2021Haskell
@@ -35,6 +37,7 @@ library
       src
   build-depends:
       base >=4.7 && <5
+    , split
   default-language: Haskell2010
 
 executable AdventOfCode2021Haskell-exe
@@ -47,6 +50,7 @@ executable AdventOfCode2021Haskell-exe
   build-depends:
       AdventOfCode2021Haskell
     , base >=4.7 && <5
+    , split
   default-language: Haskell2010
 
 test-suite AdventOfCode2021Haskell-test
@@ -60,4 +64,5 @@ test-suite AdventOfCode2021Haskell-test
   build-depends:
       AdventOfCode2021Haskell
     , base >=4.7 && <5
+    , split
   default-language: Haskell2010
