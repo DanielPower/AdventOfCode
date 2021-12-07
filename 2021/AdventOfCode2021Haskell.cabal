@@ -30,6 +30,7 @@ library
       Day3
       Day4
       Day5
+      Day6
       DayX
   other-modules:
       Paths_AdventOfCode2021Haskell
