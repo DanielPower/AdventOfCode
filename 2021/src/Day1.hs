@@ -1,8 +1,4 @@
-module Day1
-  ( part1,
-    part2,
-  )
-where
+module Day1 (part1, part2) where
 
 import Data.List (tails, transpose)
 
@@ -20,7 +16,7 @@ part1 input = do
   inputLines <- lines <$> input
   let nums = map read inputLines :: [Int]
   let pairs = zip (init nums) (tail nums)
-  let differences = map (uncurry (-)) pairs -- Still need to figure out why tf the uncurry is necessary
+  let differences = map (uncurry (-)) pairs
   let decreases = length (negatives differences)
   print decreases
 

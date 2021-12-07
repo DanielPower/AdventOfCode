@@ -1,9 +1,5 @@
 -- This one is supper inefficient. But it works. And that's enough for me.
-module Day4
-  ( part1,
-    part2,
-  )
-where
+module Day4 (part1, part2) where
 
 import Data.List (find)
 import Data.List.Split (splitWhen)

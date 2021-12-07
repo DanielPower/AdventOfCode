@@ -1,8 +1,4 @@
-module Day5
-  ( part1,
-    part2,
-  )
-where
+module Day5 (part1, part2) where
 
 import Data.List.Split (splitWhen)
 import Data.Map (Map, elems, empty, findWithDefault, insert)
@@ -45,7 +41,7 @@ diagonalLine line = do
   let minY = min y1 y2
   let maxX = max x1 x2
   let maxY = max y1 y2
-  zip [x1, x1 + (signum $ x2 - x1)..x2] [y1, y1 + (signum $ y2 - y1)..y2] -- Source: https://stackoverflow.com/a/30063912
+  zip [x1, x1 + (signum $ x2 - x1) .. x2] [y1, y1 + (signum $ y2 - y1) .. y2] -- Source: https://stackoverflow.com/a/30063912
 
 countVentLines :: Map (Int, Int) Int -> [(Int, Int)] -> Map (Int, Int) Int
 countVentLines counts [] = counts
@@ -58,20 +54,20 @@ countVentLines counts points = do
 parseInput :: [String] -> ([[Int]] -> Bool) -> [(Int, Int)]
 parseInput inputLines lineValidator =
   concatMap
-  ventLineToPoints
-  ( filter
-      lineValidator
-      ( map
-          ( map
-              ( map (read :: String -> Int)
-                  . splitWhen (== ',')
-              )
-              . filter (/= "->")
-              . splitWhen (== ' ')
-          )
-          inputLines
-      )
-  )
+    ventLineToPoints
+    ( filter
+        lineValidator
+        ( map
+            ( map
+                ( map (read :: String -> Int)
+                    . splitWhen (== ',')
+                )
+                . filter (/= "->")
+                . splitWhen (== ' ')
+            )
+            inputLines
+        )
+    )
 
 part1 :: IO String -> IO ()
 part1 input = do

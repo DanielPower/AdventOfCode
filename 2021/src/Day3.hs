@@ -35,4 +35,6 @@ part1 input = do
 part2 :: IO String -> IO ()
 part2 input = do
   inputLines <- lines <$> input
-  print "Not implemented"
+  let inputLength = length inputLines
+  let inputNums = map (map digitToInt) inputLines
+  print inputNums
