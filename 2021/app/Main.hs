@@ -6,6 +6,8 @@ import Day3
 import Day4
 import Day5
 import Day6
+import Day7
+import Day8
 import System.Environment
 
 days =
@@ -14,7 +16,9 @@ days =
     ("day3.txt", [Day3.part1, Day3.part2]),
     ("day4.txt", [Day4.part1, Day4.part2]),
     ("day5.txt", [Day5.part1, Day5.part2]),
-    ("day6.txt", [Day6.part1, Day6.part2])
+    ("day6.txt", [Day6.part1, Day6.part2]),
+    ("day7.txt", [Day7.part1, Day7.part2]),
+    ("day8.txt", [Day8.part1, Day8.part2])
   ]
 
 main :: IO ()
