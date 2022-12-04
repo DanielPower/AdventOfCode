@@ -6,7 +6,7 @@ where
 
 import Data.List.Split (splitOn)
 
-data Move = Rock | Paper | Scissors deriving (Eq, Enum)
+data Move = Rock | Paper | Scissors deriving (Eq)
 
 data Result = Win | Draw | Lose
 
@@ -19,15 +19,17 @@ parseMove 'C' = Scissors
 parseMove 'Z' = Scissors
 parseMove _ = error "Invalid input"
 
-parseInputLine :: String -> (Move, Move)
-parseInputLine line = (parseMove opponent, parseMove player)
-  where
-    moves = splitOn " " line
-    opponent = head line
-    player = last line
+parseResult :: Char -> Result
+parseResult 'X' = Lose
+parseResult 'Y' = Draw
+parseResult 'Z' = Win
+parseResult _ = error "Invalid input"
 
-parseInput :: [String] -> [(Move, Move)]
-parseInput = map parseInputLine
+parseInputLine :: String -> (Move, Move)
+parseInputLine line = (parseMove (head line), parseMove (last line))
+
+parseInputLine2 :: String -> (Move, Result)
+parseInputLine2 line = (parseMove (head line), parseResult (last line))
 
 moveScore :: Move -> Int
 moveScore Rock = 1
@@ -39,6 +41,16 @@ resultScore Win = 6
 resultScore Draw = 3
 resultScore Lose = 0
 
+movesForResult :: (Move, Result) -> (Move, Move)
+movesForResult (opponent, Win) = (opponent, dominantMove opponent)
+movesForResult (opponent, Draw) = (opponent, opponent)
+movesForResult (opponent, Lose) = (opponent, dominantMove (dominantMove opponent))
+
+dominantMove :: Move -> Move
+dominantMove Rock = Paper
+dominantMove Paper = Scissors
+dominantMove Scissors = Rock
+
 roundResult :: (Move, Move) -> Result
 roundResult (opponent, player)
   | opponent == player = Draw
@@ -46,20 +58,19 @@ roundResult (opponent, player)
   | player == dominantMove opponent = Win
   | otherwise = error "Impossible (hopefully)"
 
-dominantMove :: Move -> Move
-dominantMove Scissors = Rock
-dominantMove move = succ move
+computeScore :: [(Move, Move)] -> [Result] -> Int
+computeScore moves results = sum (map (moveScore . snd) moves) + sum (map resultScore results)
 
 part1 :: IO String -> IO ()
 part1 input = do
   inputLines <- lines <$> input
-  let moves = parseInput inputLines
+  let moves = map parseInputLine inputLines
   let results = map roundResult moves
-  let moveScoreSum = sum (map (moveScore . snd) moves)
-  let resultScoreSum = sum (map resultScore results)
-  print (moveScoreSum + resultScoreSum)
+  print (computeScore moves results)
 
 part2 :: IO String -> IO ()
 part2 input = do
   inputLines <- lines <$> input
-  print "Not implemented"
+  let moves = map (movesForResult . parseInputLine2) inputLines
+  let results = map roundResult moves
+  print (computeScore moves results)
