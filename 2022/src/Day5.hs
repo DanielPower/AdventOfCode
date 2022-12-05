@@ -5,8 +5,7 @@ module Day5
 where
 
 import Data.List (transpose)
-import Data.List.Split (chunksOf, splitEvery, splitWhen)
-import Debug.Trace (traceId, traceShow, traceShowId)
+import Data.List.Split (splitWhen)
 
 -- https://stackoverflow.com/questions/2026912/how-to-get-every-nth-element-of-an-infinite-list-in-haskell
 every n xs = case drop (n -1) xs of
