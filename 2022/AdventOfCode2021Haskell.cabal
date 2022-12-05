@@ -29,6 +29,7 @@ library
       Day2
       Day3
       Day4
+      Day5
       DayX
   other-modules:
       Paths_AdventOfCode2021Haskell
@@ -37,6 +38,7 @@ library
   build-depends:
       base >=4.7 && <5
     , containers
+    , matrix
     , split
     , unordered-containers
   default-language: Haskell2010
@@ -52,6 +54,7 @@ executable AdventOfCode2021Haskell-exe
       AdventOfCode2021Haskell
     , base >=4.7 && <5
     , containers
+    , matrix
     , split
     , unordered-containers
   default-language: Haskell2010

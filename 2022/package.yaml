@@ -24,6 +24,7 @@ dependencies:
   - split
   - containers
   - unordered-containers
+  - matrix
 
 library:
   source-dirs: src
