@@ -59,22 +59,23 @@ runInstruction columns (quantity, source, destination) = do
   let items = take quantity (columns !! source)
   zipWith (curry (updateColumn source destination items)) [0 ..] columns
 
+parseInput :: [String] -> ([(Int, Int, Int)], [String])
+parseInput lines = do
+  let (initialStateInput, instructionsInput) = splitInitialStateFromInstructions lines
+  let initialState = map (filter (/= ' ')) (transpose (map parseInitialStateRow initialStateInput))
+  let instructions = map parseInstruction instructionsInput
+  (instructions, initialState)
+
 part1 :: IO String -> IO ()
 part1 input = do
   inputLines <- lines <$> input
-  let (initialStateInput, instructionsInput) = splitInitialStateFromInstructions inputLines
-  let initialState = transpose (map parseInitialStateRow initialStateInput)
-  let cleanInitialState = map (filter (/= ' ')) initialState
-  let instructions = map parseInstruction instructionsInput
-  let resultState = foldl runInstructionWithReverse cleanInitialState instructions
-  print (map head resultState)
+  let (instructions, initialState) = parseInput inputLines
+  let finalState = foldl runInstructionWithReverse initialState instructions
+  print (map head finalState)
 
 part2 :: IO String -> IO ()
 part2 input = do
   inputLines <- lines <$> input
-  let (initialStateInput, instructionsInput) = splitInitialStateFromInstructions inputLines
-  let initialState = transpose (map parseInitialStateRow initialStateInput)
-  let cleanInitialState = map (filter (/= ' ')) initialState
-  let instructions = map parseInstruction instructionsInput
-  let resultState = foldl runInstruction cleanInitialState instructions
-  print (map head resultState)
+  let (instructions, initialState) = parseInput inputLines
+  let finalState = foldl runInstruction initialState instructions
+  print (map head finalState)
