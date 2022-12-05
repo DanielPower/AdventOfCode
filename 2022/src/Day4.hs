@@ -4,8 +4,7 @@ module Day4
   )
 where
 
-import Data.Char (digitToInt)
-import Data.List.Split (chunksOf, splitWhen)
+import Data.List.Split (splitWhen)
 
 type Schedule = (Int, Int)
 

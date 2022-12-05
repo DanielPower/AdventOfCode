@@ -4,8 +4,6 @@ module Day2
   )
 where
 
-import Data.List.Split (splitOn)
-
 data Move = Rock | Paper | Scissors deriving (Eq)
 
 data Result = Win | Draw | Lose

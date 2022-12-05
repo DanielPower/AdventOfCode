@@ -4,7 +4,7 @@ module Day1
   )
 where
 
-import Data.List (sort, sortBy)
+import Data.List (sortBy)
 import Data.List.Split (splitWhen)
 
 parseInput :: [String] -> [[String]]
