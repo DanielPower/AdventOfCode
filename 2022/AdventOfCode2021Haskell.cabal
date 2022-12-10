@@ -30,6 +30,8 @@ library
       Day3
       Day4
       Day5
+      Day6
+      Day7
       DayX
   other-modules:
       Paths_AdventOfCode2021Haskell
@@ -38,6 +40,7 @@ library
   build-depends:
       base >=4.7 && <5
     , containers
+    , hashmap
     , matrix
     , split
     , unordered-containers
@@ -54,6 +57,7 @@ executable AdventOfCode2021Haskell-exe
       AdventOfCode2021Haskell
     , base >=4.7 && <5
     , containers
+    , hashmap
     , matrix
     , split
     , unordered-containers
