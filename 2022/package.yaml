@@ -25,6 +25,7 @@ dependencies:
   - containers
   - unordered-containers
   - matrix
+  - hashmap
 
 library:
   source-dirs: src
