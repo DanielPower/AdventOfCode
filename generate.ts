@@ -1,25 +1,30 @@
 import { readdirSync, writeFileSync } from "node:fs";
+import { markdownTable } from "markdown-table";
 
 const languageNames = ["haskell", "python", "typescript", "rust"];
-const years = readdirSync(".").filter((f) => f.match(/^\d{4}$/));
+const tables = await Promise.all(
+  readdirSync(".")
+    .filter((f) => f.match(/^\d{4}$/))
+    .map(async (year) => {
+      const list = await Promise.all(
+        readdirSync(year)
+          .filter((f) => languageNames.includes(f))
+          .map(
+            async (language) =>
+              (await import(`./${year}/${language}/list.ts`)).default,
+          ),
+      );
+      return [year, list];
+    }),
+);
 
-let progressTables = "";
-for (const year of years) {
-  const languages = readdirSync(year).filter((f) => languageNames.includes(f));
-  progressTables += `# ${year}\n`;
-  progressTables += "| Language | Progress |  \n";
-  progressTables += "| -------- | -------- |  \n";
-  for (const language of languages) {
-    progressTables += `| ${language} |`;
-    const list = (await import(`./${year}/${language}/list.ts`)).default;
-    for (let day = 1; day <= 25; day++) {
-      const parts = list.get(day) ?? 0;
-      const symbol = parts === 2 ? "✅" : parts === 1 ? "🟡" : "❌";
-      progressTables += symbol;
-    }
-    progressTables += "|\n";
-  }
-}
+console.log(
+  markdownTable([
+    ["Language", "Stars", "Progress"],
+    ["a", "b", "c"],
+  ]),
+);
+console.log(tables);
 
-writeFileSync("README.md", progressTables);
-console.log(progressTables);
+// writeFileSync("README.md", progressTables);
+// console.log(progressTables);
