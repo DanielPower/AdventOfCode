@@ -1,9 +1,6 @@
 use std::io;
 
 fn first_digit(line: &String) -> char {
-    if line.is_empty() {
-        panic!("Empty line");
-    }
     if line.starts_with("1") || line.starts_with("one") {
         '1'
     } else if line.starts_with("2") || line.starts_with("two") {
