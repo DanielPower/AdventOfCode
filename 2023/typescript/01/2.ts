@@ -8,7 +8,6 @@ const numberMap = [
   ["7", "7"],
   ["8", "8"],
   ["9", "9"],
-  ["0", "0"],
   ["one", "1"],
   ["two", "2"],
   ["three", "3"],
@@ -28,9 +27,7 @@ const reversedNumberMap = numberMap.map(([key, value]) => [
 const firstWith = (values: string[][], line: string): string => {
   if (!line) throw new Error("No match");
   const digit = values.find(([key]) => line.startsWith(key));
-  if (digit) {
-    return digit[1];
-  }
+  if (digit) return digit[1];
   return firstWith(values, line.slice(1));
 };
 
