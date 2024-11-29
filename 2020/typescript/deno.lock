@@ -1,0 +1,19 @@
+{
+  "version": "3",
+  "remote": {
+    "https://deno.land/std@0.83.0/bytes/mod.ts": "e4f91c6473fe13e3cf1a23649137f87f49135c10bc08fc0f83382a0fb0b03744",
+    "https://deno.land/x/readline@v1.1.0/deps.ts": "ad98d16593ba9981320c193bc306cb6c00b491ad4ea265ff3c8b26285bcba74a",
+    "https://deno.land/x/readline@v1.1.0/mod.ts": "fdfe3162d558e75c3ae20e7f23e0fe894205c1040ab08b1bd5169da877594487"
+  },
+  "workspace": {
+    "packageJson": {
+      "dependencies": [
+        "npm:@typescript-eslint/eslint-plugin@^4.9.0",
+        "npm:@typescript-eslint/parser@^4.9.0",
+        "npm:eslint@^7.14.0",
+        "npm:prettier@^2.2.1",
+        "npm:typescript@^4.1.2"
+      ]
+    }
+  }
+}

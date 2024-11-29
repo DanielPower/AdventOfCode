@@ -1,11 +1,13 @@
 {
   "type": "module",
   "devDependencies": {
-    "bun-types": "^1.0.15",
     "prettier": "^3.1.0",
     "typescript": "^5.0.0"
   },
   "dependencies": {
     "markdown-table": "^3.0.3"
+  },
+  "scripts": {
+    "generate": "deno --allow-read --allow-write --allow-run generate.ts"
   }
 }
