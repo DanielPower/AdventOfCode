@@ -2,6 +2,25 @@ import { Project } from "./types.ts";
 
 export const formatDay = (day: number) => day.toString().padStart(2, "0");
 
+export const fetchInput = async (year: string, day: number) => {
+  const dayString = formatDay(day);
+  const response = await fetch(
+    `https://adventofcode.com/${year}/day/${day}/input`,
+    {
+      headers: {
+        cookie: `session=${Deno.env.get("AOC_SESSION")}`,
+      },
+    },
+  );
+
+  if (response.status !== 200) {
+    throw new Error(`Failed to fetch input: ${response.status}`);
+  }
+
+  const input = await response.text();
+  await Deno.writeTextFile(`${year}/data/${dayString}.in`, input);
+};
+
 export const run = async (
   project: Project,
   year: string,
@@ -14,6 +33,8 @@ export const run = async (
   try {
     inputReadable = (await Deno.open(`${year}/data/${dayString}.in`)).readable;
   } catch {
+    await fetchInput(year, day);
+    inputReadable = (await Deno.open(`${year}/data/${dayString}.in`)).readable;
     return {
       result: false,
       expected: null,
@@ -22,6 +43,7 @@ export const run = async (
     };
   }
 
+  const { cwd, args } = project.run(day, part);
   const child = new Deno.Command("docker", {
     args: [
       "run",
@@ -29,8 +51,9 @@ export const run = async (
       "--rm",
       "-v",
       `${Deno.cwd()}/${year}/${language}:/data:z`,
+      ...(cwd ? ["-w", `/data/${cwd}`] : []),
       project.container,
-      ...project.run(day, part),
+      ...args,
     ],
     stdin: "piped",
     stdout: "piped",
@@ -44,6 +67,38 @@ export const run = async (
   writer.close();
 
   return { stdout: child.stdout, stderr: child.stderr };
+};
+
+export const build = async (
+  project: Project,
+  year: string,
+  language: string,
+  day: number,
+  part: number,
+) => {
+  if (!project.build) {
+    return true;
+  }
+  const { args, cwd } = project.build(day, part);
+  const child = new Deno.Command("docker", {
+    args: [
+      "run",
+      "-i",
+      "--rm",
+      "-v",
+      `${Deno.cwd()}/${year}/${language}:/data:z`,
+      ...(cwd ? ["-w", `/data/${cwd}`] : []),
+      project.container,
+      ...args,
+    ],
+    stderr: "piped",
+  }).spawn();
+
+  const { code } = await child.status;
+  if (code !== 0) {
+    console.error(new TextDecoder().decode((await child.output()).stderr));
+  }
+  return code === 0;
 };
 
 export const test = async (
@@ -62,4 +117,13 @@ export const test = async (
   );
 
   return { result: actual === expected, expected, actual };
+};
+
+export const fileExists = (path: string) => {
+  try {
+    Deno.statSync(path);
+    return true;
+  } catch {
+    return false;
+  }
 };

@@ -8,6 +8,6 @@
     "markdown-table": "^3.0.3"
   },
   "scripts": {
-    "generate": "deno --allow-read --allow-write --allow-run generate.ts"
+    "generate": "deno --allow-read --allow-write --allow-run --allow-env --allow-net --env generate.ts"
   }
 }

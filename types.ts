@@ -1,6 +1,19 @@
 export type Project = {
-  build?: () => boolean;
-  run: (day: number, part: number) => Array<string>;
+  build?: (
+    day: number,
+    part: number,
+  ) => {
+    args: Array<string>;
+    cwd?: string;
+  };
+  run: (
+    day: number,
+    part: number,
+  ) => {
+    args: Array<string>;
+    cwd?: string;
+  };
+  exists: (root: string, day: number, part: number) => boolean;
   container: string;
 };
 

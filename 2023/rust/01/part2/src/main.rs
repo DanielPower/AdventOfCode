@@ -56,7 +56,6 @@ fn main() -> io::Result<()> {
     let mut numbers: Vec<i64> = Vec::new();
     for line in io::stdin().lines() {
         let line = line?;
-        println!("{}", line);
         let a = first_digit(&line);
         let reversed_line: String = line.chars().rev().collect();
         let b = last_digit(&reversed_line);

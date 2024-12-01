@@ -23,7 +23,4 @@ for i in range(193651, 649729+1):
 
     if is_decreasing and good:
         valid += 1
-    elif is_decreasing:
-        print(string_value)
-
 print(valid)
