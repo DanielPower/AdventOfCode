@@ -1,11 +1,8 @@
 import { Project } from "./types.ts";
 
-export const formatDay = (day: number) => day.toString().padStart(2, "0");
-
-export const fetchInput = async (year: string, day: number) => {
-  const dayString = formatDay(day);
+export const fetchInput = async (year: string, day: string) => {
   const response = await fetch(
-    `https://adventofcode.com/${year}/day/${day}/input`,
+    `https://adventofcode.com/${year}/day/${parseInt(day)}/input`,
     {
       headers: {
         cookie: `session=${Deno.env.get("AOC_SESSION")}`,
@@ -18,23 +15,22 @@ export const fetchInput = async (year: string, day: number) => {
   }
 
   const input = await response.text();
-  await Deno.writeTextFile(`${year}/data/${dayString}.in`, input);
+  await Deno.writeTextFile(`${year}/data/${day}.in`, input);
 };
 
 export const run = async (
   project: Project,
   year: string,
   language: string,
-  day: number,
-  part: number,
+  day: string,
+  part: string,
 ) => {
-  const dayString = day.toString().padStart(2, "0");
   let inputReadable;
   try {
-    inputReadable = (await Deno.open(`${year}/data/${dayString}.in`)).readable;
+    inputReadable = (await Deno.open(`${year}/data/${day}.in`)).readable;
   } catch {
     await fetchInput(year, day);
-    inputReadable = (await Deno.open(`${year}/data/${dayString}.in`)).readable;
+    inputReadable = (await Deno.open(`${year}/data/${day}.in`)).readable;
     return {
       result: false,
       expected: null,
@@ -73,8 +69,8 @@ export const build = async (
   project: Project,
   year: string,
   language: string,
-  day: number,
-  part: number,
+  day: string,
+  part: string,
 ) => {
   if (!project.build) {
     return true;
@@ -103,14 +99,16 @@ export const build = async (
 
 export const test = async (
   year: string,
-  day: number,
-  part: number,
+  day: string,
+  part: string,
   stdout: ReadableStream,
 ) => {
-  const dayString = formatDay(day);
-  const expected = await Deno.readTextFile(
-    `${year}/data/${dayString}.${part}.out`,
-  );
+  let expected;
+  try {
+    expected = await Deno.readTextFile(`${year}/data/${day}.${part}.out`);
+  } catch {
+    expected = null;
+  }
 
   const actual = new TextDecoder().decode(
     (await stdout.getReader().read()).value,
@@ -125,5 +123,33 @@ export const fileExists = (path: string) => {
     return true;
   } catch {
     return false;
+  }
+};
+
+export const getProjectResult = async (
+  project: Project,
+  year: string,
+  language: string,
+  day: string,
+  part: string,
+) => {
+  try {
+    if (!project.exists(`${year}/${language}`, day, part)) {
+      return;
+    }
+    await build(project, year, language, day, part);
+    const { stdout } = await run(project, year, language, day, part);
+    const { result, actual, expected } = await test(year, day, part, stdout!);
+    if (result) {
+      console.log(`✅ ${year}: Day ${day} Part ${part}: Success`);
+    } else {
+      console.log(`❌ ${year}: Day ${day} Part ${part}: Failure`);
+      console.log(`Expected: ${expected}`);
+      console.log(`Recevied: ${actual}`);
+    }
+  } catch (e) {
+    console.log(`❌ ${year}: Day ${day} Part ${part}: Failure`);
+    console.log(`Unexpected error`);
+    console.log(e);
   }
 };
