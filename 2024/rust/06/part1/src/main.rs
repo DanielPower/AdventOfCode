@@ -65,6 +65,24 @@ impl Grid {
     }
 }
 
+fn next_direction(direction: Direction) -> Direction {
+    match direction {
+        Direction::Up => Direction::Right,
+        Direction::Right => Direction::Down,
+        Direction::Down => Direction::Left,
+        Direction::Left => Direction::Up,
+    }
+}
+
+fn next_position(x: i32, y: i32, direction: &Direction) -> (i32, i32) {
+    match direction {
+        Direction::Up => (x, y - 1),
+        Direction::Down => (x, y + 1),
+        Direction::Left => (x - 1, y),
+        Direction::Right => (x + 1, y),
+    }
+}
+
 fn main() {
     let mut grid = Grid::from_reader(std::io::stdin());
     let mut direction = Direction::Up;
@@ -72,26 +90,14 @@ fn main() {
     let mut x: i32 = (grid.guard % grid.width).try_into().unwrap();
     let mut y: i32 = (grid.guard / grid.width).try_into().unwrap();
     loop {
-        let (next_x, next_y) = match direction {
-            Direction::Up => (x, y - 1),
-            Direction::Down => (x, y + 1),
-            Direction::Left => (x - 1, y),
-            Direction::Right => (x + 1, y),
-        };
+        let (next_x, next_y) = next_position(x, y, &direction);
         let current_char = grid.get(x as usize, y as usize).unwrap();
         if current_char == '.' {
             total += 1;
             grid.set(x as usize, y as usize, 'x');
         }
         match grid.get(next_x as usize, next_y as usize) {
-            Some('#') => {
-                direction = match direction {
-                    Direction::Up => Direction::Right,
-                    Direction::Right => Direction::Down,
-                    Direction::Down => Direction::Left,
-                    Direction::Left => Direction::Up,
-                }
-            }
+            Some('#') => direction = next_direction(direction),
             Some(_) => {
                 x = next_x;
                 y = next_y;
