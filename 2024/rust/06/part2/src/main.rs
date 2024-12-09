@@ -119,6 +119,21 @@ fn get_next_position(grid: &Grid, position: usize, direction: Direction) -> Opti
     }
 }
 
+fn peek(grid: &Grid, position: usize, direction: Direction) -> bool {
+    let mut peek_position = position;
+    loop {
+        match get_next_position(grid, peek_position, direction) {
+            None => return false,
+            Some(p) => {
+                peek_position = p;
+                if matches!(grid.items[p], Tile::Obstacle) {
+                    return true;
+                }
+            }
+        }
+    }
+}
+
 fn find_loop(grid: &Grid, position_initial: usize, direction_initial: Direction) -> bool {
     let mut direction = direction_initial;
     let mut position = position_initial;
@@ -160,7 +175,10 @@ fn main() {
         let mut modified_grid = grid.clone();
         if next_position != grid.guard {
             modified_grid.items[next_position] = Tile::Obstacle;
-            let has_loop = find_loop(&modified_grid, grid.guard, Direction::Up);
+            // Peeking reduces the search space by quickly pruning scenarios where the obstacle
+            // would send the guard immediately out of the map
+            let has_loop = peek(&modified_grid, position, next_direction(direction))
+                && find_loop(&modified_grid, grid.guard, Direction::Up);
             if has_loop {
                 valid_obstacles.insert(next_position);
             }
