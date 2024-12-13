@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 enum Direction {
@@ -8,38 +8,71 @@ enum Direction {
     Right,
 }
 
-fn parse_input<R: std::io::Read>(reader: R) -> ((i32, i32), Vec<(i32, i32)>) {
-    let mut y = 0;
-    let mut x = 0;
-    let mut last_char = 'x';
-    let mut guard: (i32, i32) = (0, 0);
-    let mut obstacles: Vec<(i32, i32)> = Vec::new();
-    for byte in reader.bytes() {
-        match byte {
-            Ok(b) => {
-                let char = b as char;
-                match char {
-                    '\n' => {
-                        if last_char == '\n' {
-                            break;
+#[derive(Clone, Copy, Debug)]
+enum Tile {
+    Empty,
+    Obstacle,
+}
+
+struct Grid {
+    items: Vec<Tile>,
+    width: usize,
+    height: usize,
+    guard: usize,
+}
+
+impl Grid {
+    fn from_reader<R: std::io::Read>(reader: R) -> Self {
+        let mut items: Vec<Tile> = Vec::new();
+        let mut height = 0;
+        let mut last_char = 'x';
+        let mut guard = 0;
+        for byte in reader.bytes() {
+            match byte {
+                Ok(b) => {
+                    let char = b as char;
+                    match char {
+                        '\n' => {
+                            if last_char == '\n' {
+                                break;
+                            }
+                            height += 1;
                         }
-                        y += 1;
-                        x = -1;
+                        '^' => {
+                            guard = items.len();
+                            items.push(Tile::Empty);
+                        }
+                        '.' => items.push(Tile::Empty),
+                        '#' => items.push(Tile::Obstacle),
+                        _ => panic!("Unexpected character: {}", char),
                     }
-                    '^' => {
-                        guard = (x as i32, y);
-                    }
-                    '#' => obstacles.push((x as i32, y)),
-                    _ => (),
+                    last_char = char;
                 }
-                last_char = char;
+                Err(e) => {
+                    eprintln!("Error: {}", e);
+                    std::process::exit(1);
+                }
             }
-            Err(e) => panic!("Error: {}", e),
         }
-        x += 1;
+        let width = items.len() / height;
+        Self {
+            items,
+            width,
+            height,
+            guard,
+        }
     }
-    println!("Guard: {:?}, Obstacles: {:?}", guard, obstacles);
-    (guard, obstacles)
+    fn get_index(&self, x: usize, y: usize) -> usize {
+        y * self.width + x
+    }
+    fn clone(&self) -> Self {
+        Self {
+            items: self.items.clone(),
+            width: self.width,
+            height: self.height,
+            guard: self.guard,
+        }
+    }
 }
 
 fn next_direction(direction: Direction) -> Direction {
@@ -51,141 +84,101 @@ fn next_direction(direction: Direction) -> Direction {
     }
 }
 
-fn next_obstacle(
-    obstacles: Vec<(i32, i32)>,
-    (guard_x, guard_y): (i32, i32),
-    direction: Direction,
-) -> Option<(i32, i32)> {
+fn get_next_position(grid: &Grid, position: usize, direction: Direction) -> Option<usize> {
+    let x = (position % grid.width).try_into().unwrap();
+    let y = (position / grid.width).try_into().unwrap();
     match direction {
         Direction::Up => {
-            let mut obstacles_ahead = obstacles
-                .into_iter()
-                .filter(|(x, y)| *x == guard_x && *y < guard_y)
-                .collect::<Vec<(i32, i32)>>();
-            obstacles_ahead.sort_by(|(_, y1), (_, y2)| y1.cmp(y2));
-            match obstacles_ahead.first() {
-                Some((_, y)) => Some((guard_x, y + 1)),
-                None => None,
+            if y < 1 {
+                None
+            } else {
+                Some(grid.get_index(x, y - 1))
             }
         }
         Direction::Down => {
-            let mut obstacles_ahead = obstacles
-                .into_iter()
-                .filter(|(x, y)| *x == guard_x && *y > guard_y)
-                .collect::<Vec<(i32, i32)>>();
-            obstacles_ahead.sort_by(|(_, y1), (_, y2)| y1.cmp(y2));
-            match obstacles_ahead.first() {
-                Some((_, y)) => Some((guard_x, y - 1)),
-                None => None,
+            if y >= grid.height - 1 {
+                None
+            } else {
+                Some(grid.get_index(x, y + 1))
             }
         }
         Direction::Left => {
-            let mut obstacles_ahead = obstacles
-                .into_iter()
-                .filter(|(x, y)| *y == guard_y && *x < guard_x)
-                .collect::<Vec<(i32, i32)>>();
-            obstacles_ahead.sort_by(|(x1, _), (x2, _)| x1.cmp(x2));
-            match obstacles_ahead.first() {
-                Some((x, _)) => Some((x + 1, guard_y)),
-                None => None,
+            if x < 1 {
+                None
+            } else {
+                Some(grid.get_index(x - 1, y))
             }
         }
         Direction::Right => {
-            let mut obstacles_ahead = obstacles
-                .into_iter()
-                .filter(|(x, y)| *y == guard_y && *x > guard_x)
-                .collect::<Vec<(i32, i32)>>();
-            obstacles_ahead.sort_by(|(x1, _), (x2, _)| x1.cmp(x2));
-            match obstacles_ahead.first() {
-                Some((x, _)) => Some((x - 1, guard_y)),
-                None => None,
+            if x >= grid.width - 1 {
+                None
+            } else {
+                Some(grid.get_index(x + 1, y))
             }
         }
     }
 }
 
-fn next_potential_obstacle(
-    obstacles: Vec<(i32, i32)>,
-    (guard_x, guard_y): (i32, i32),
-    direction: Direction,
-) -> Option<(i32, i32)> {
-    println!("{:?}, {:?}, {:?}", obstacles, (guard_x, guard_y), direction);
-    let sorted_obstacles = match direction {
-        Direction::Up => match obstacles.clone()
-            .into_iter()
-            .filter(|(x, y)| *x > guard_x && *y < guard_y)
-            .collect::<Vec<(i32, i32)>>().sort_by(|(_, y1), (_, y2)| y1.cmp(y2))
-        Direction::Down => {
-            match obstacles
-                .into_iter()
-                .find(|(x, y)| *x < guard_x && *y == guard_y)
-            {
-                Some((_, y)) => Some((guard_x, y + 1)),
-                None => None,
-            }
-        }
-        Direction::Left => {
-            match obstacles
-                .into_iter()
-                .find(|(x, y)| *y < guard_y && *x == guard_x)
-            {
-                Some((x, _)) => Some((x - 1, guard_y)),
-                None => None,
-            }
-        }
-        Direction::Right => {
-            match obstacles
-                .into_iter()
-                .find(|(x, y)| *y > guard_y && *x == guard_x)
-            {
-                Some((x, _)) => Some((x + 1, guard_y)),
-                None => None,
+fn peek(grid: &Grid, position: usize, direction: Direction) -> bool {
+    let mut peek_position = position;
+    loop {
+        match get_next_position(grid, peek_position, direction) {
+            None => return false,
+            Some(p) => {
+                peek_position = p;
+                if matches!(grid.items[p], Tile::Obstacle) {
+                    return true;
+                }
             }
         }
     }
 }
 
-fn find_loop(
-    obstacles: Vec<(i32, i32)>,
-    position_initial: (i32, i32),
-    direction_initial: Direction,
-) -> bool {
+fn find_loop(grid: &Grid, position_initial: usize, direction_initial: Direction) -> bool {
     let mut direction = direction_initial;
     let mut position = position_initial;
-    let mut visited: HashMap<(i32, i32), HashSet<Direction>> = HashMap::new();
+    let mut visited: Vec<HashSet<Direction>> = Vec::new();
+    for _ in 0..grid.items.len() {
+        visited.push(HashSet::new());
+    }
     loop {
-        let next_position = match next_obstacle(obstacles.clone(), position, direction) {
+        let next_position = match get_next_position(&grid, position, direction) {
             Some(p) => p,
             None => return false,
         };
-        direction = next_direction(direction);
-        if visited.contains_key(&position) && visited[&position].contains(&direction) {
+        if matches!(grid.items[next_position], Tile::Obstacle) {
+            direction = next_direction(direction);
+            continue;
+        }
+        if visited[position].contains(&direction) {
             return true;
         }
-        visited
-            .entry(position)
-            .or_insert_with(HashSet::new)
-            .insert(direction);
+        visited[position].insert(direction);
         position = next_position;
     }
 }
 
 fn main() {
-    let (guard, mut obstacles) = parse_input(std::io::stdin());
+    let grid = Grid::from_reader(std::io::stdin());
     let mut direction = Direction::Up;
-    let mut position = guard;
-    let mut valid_obstacles: HashSet<(i32, i32)> = HashSet::new();
+    let mut position = grid.guard;
+    let mut valid_obstacles: HashSet<usize> = HashSet::new();
     loop {
-        println!("Start: {:?}", position);
-        let next_position = match next_potential_obstacle(obstacles.clone(), position, direction) {
+        let next_position = match get_next_position(&grid, position, direction) {
             None => break,
             Some(p) => p,
         };
-        println!("Next Potential Obstacle: {:?}", next_position);
-        direction = next_direction(direction);
-        if next_position != guard {
-            obstacles.push(next_position);
-            let has_loop = find_loop(obstacles.clone(), guard, Direction::Up);
+        if matches!(grid.items[next_position], Tile::Obstacle) {
+            direction = next_direction(direction);
+            continue;
+        }
+        let mut modified_grid = grid.clone();
+        if next_position != grid.guard {
+            modified_grid.items[next_position] = Tile::Obstacle;
+            // Peeking reduces the search space by quickly pruning scenarios where the obstacle
+            // would send the guard immediately out of the map
+            let has_loop = peek(&modified_grid, position, next_direction(direction))
+                && find_loop(&modified_grid, grid.guard, Direction::Up);
             if has_loop {
                 valid_obstacles.insert(next_position);
             }
