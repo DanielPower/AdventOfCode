@@ -3,3 +3,4 @@
 .env
 *.in
 *.out
+.DS_Store
