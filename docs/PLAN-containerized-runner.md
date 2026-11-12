@@ -207,11 +207,64 @@ The repo is public, so **Actions logs and artifacts are public**. `aoc test --ci
 
 ## 4. CLI (`aoc`)
 
-**Recommendation: keep it in TypeScript on Deno.** That builds on the existing code and `deno.lock`,
-needs no build step, offers `deno compile` for a single binary if wanted, and `@std/toml` and
-`@std/fs` cover the needs. Pin the Deno version in `deno.json` and CI so the orchestrator doesn't
-drift either. (A Rust rewrite with `clap` would also be reasonable if you'd rather maintain Rust,
-but the design doesn't depend on it.)
+**Recommendation: Rust, as a standalone crate in `tools/aoc/`, invoked through a cargo alias.**
+
+The current tooling is on Deno, and you're moving off it. Under this plan almost none of the
+existing TypeScript survives anyway (§6 Phase 1 replaces all of it), so a language change costs little now.
+
+Why Rust:
+* **It doesn't need a separate build step.** A root `.cargo/config.toml` alias makes the
+  compile invisible, like running a script:
+  ```toml
+  [alias]
+  aoc = "run -q --release --manifest-path tools/aoc/Cargo.toml --"
+  ```
+  `cargo aoc test 2025/7` works from anywhere in the repo. The first run compiles in about 30 s,
+  and later runs are incremental (sub-second when the tool hasn't changed). You already have
+  `cargo` installed for the solutions.
+* **The tool can't drift either.** `tools/aoc/rust-toolchain.toml` pins the compiler and
+  `Cargo.lock` pins the dependencies. A built binary has no runtime that can be deprecated, the
+  same guarantee the plan gives the solutions.
+* **It suits the job.** A manifest typed with `serde`, deserialized from TOML, gives validation and
+  error messages for free. Subprocess, timeout and thread-pool handling is straightforward. A static
+  binary is easy to hand to CI.
+* **CI builds it.** CI runs `cargo build --release` with `Swatinem/rust-cache` (about 10–20 s when
+  cached). Publishing release binaries is optional (§6 Phase 4) and only helps on machines
+  without Rust.
+
+Layout and crates (kept deliberately small):
+```
+tools/aoc/
+  Cargo.toml  Cargo.lock  rust-toolchain.toml
+  src/main.rs       # clap (derive) subcommands
+  src/manifest.rs   # aoc.toml: serde + toml, validation, placeholder expansion
+  src/discover.rs   # "{dd}/part{part}/Cargo.toml" → regex → walkdir → (day, part) set
+  src/runtime.rs    # docker/podman invocation, build/run, timeouts (wait-timeout), kill
+  src/data.rs       # AOC_DATA_DIR, answers.toml, fetch + answer scraping (ureq, regex)
+  src/results.rs    # results.json (serde_json), cache keys (sha2)
+  src/readme.rs     # marker-block rendering
+.cargo/config.toml  # the alias above
+```
+Concurrency uses `std::thread::scope` with a channel-fed worker pool (or `rayon` with a sized
+pool), so no async runtime is needed.
+
+**Workspace gotcha:** don't put a `[workspace]` `Cargo.toml` at the repo root. Cargo searches
+upward for one, and the solution crates (`2024/rust/01/part1`, ...) would then fail with
+"believes it's in a workspace when it's not". The tool lives in its own package under `tools/aoc/`,
+reached through `--manifest-path`.
+
+**Timeout gotcha (this applies in any language):** killing the `docker run` client process does
+*not* stop the container. Start each run with `--name aoc-<random>` and `--init`, and on timeout run
+`docker kill <name>` and then reap the client.
+
+Runner-up: **Node 24 LTS with native TypeScript type-stripping** (`node tools/aoc/main.ts`, no
+build step). It needs only erasable syntax (no enums or namespaces) and a `.ts` import extension,
+which this repo already uses. Choose it if a compile-free script matters more than the drift
+guarantee. It still needs `npm ci` for a TOML parser, and it re-introduces a runtime to keep current.
+
+**Deno-based solutions are unaffected.** `2020/typescript` (Deno 1.46.3) and `2023/typescript`
+(Bun) run inside digest-pinned images, so a deprecated runtime doesn't break them. Mirror those two
+images to GHCR (`aoc toolchain mirror`) so they don't depend on Docker Hub keeping them.
 
 ```
 aoc test   [SEL] [--impl ID] [--examples] [--jobs N] [--ci] [--json FILE] [--changed]
@@ -280,21 +333,23 @@ jobs:
           repository: DanielPower/AdventOfCode-data
           ssh-key: ${{ secrets.AOC_DATA_DEPLOY_KEY }}
           path: .aoc-data
-      - uses: denoland/setup-deno@v2
-        with: { deno-version: "2.x.y" }           # pinned
-      - uses: actions/cache@v4                     # cargo/stack/deno build caches per impl
+      - uses: Swatinem/rust-cache@v2               # caches the aoc tool build
+        with: { workspaces: tools/aoc }
+      - run: cargo build --release --manifest-path tools/aoc/Cargo.toml   # rustup on the runner honours rust-toolchain.toml
+      - run: echo "$PWD/tools/aoc/target/release" >> "$GITHUB_PATH"
+      - uses: actions/cache@v4                     # cargo/stack/deno build caches for the solutions
         with: { path: ~/.aoc-cache, key: aoc-${{ hashFiles('**/aoc.toml', '**/*.lock') }} }
       - name: Test
         run: |
           if [ "$TRUSTED" = true ]; then
-            deno task aoc test --ci --changed --json results.json   # --changed: skip unchanged keys
+            aoc test --ci --changed --json results.json   # --changed: skip unchanged keys
           else
-            deno task aoc build --changed                          # forks: compile only
+            aoc build --changed                          # forks: compile only
           fi
       - name: Update README
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         run: |
-          deno task aoc readme
+          aoc readme
           git diff --quiet README.md results.json || {
             git config user.name  "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -339,8 +394,11 @@ attempted (blank). Not attempted is now distinct from failing; the current READM
    exit-code and timeout handling, and trimmed comparison. This fixes defects 1–8 by construction.
 3. `test`, `run`, `build`, `--json`, `--ci` redaction, and `results.json` plus cache keys.
 4. `readme` (with `--check`), and `toolchain pin`.
-5. Tooling cleanup: one `deno.json` with tasks and pinned imports. Delete `package.json`,
-   `tsconfig.json` (`bun-types`), the root `deno.lock` (to be regenerated), and the committed `.DS_Store` files.
+5. Tooling cleanup: add `tools/aoc/` and the `.cargo/config.toml` alias, and add `tools/aoc/target/`
+   to `.gitignore`. Delete the Deno/Node tooling at the root: `package.json`, `deno.lock`,
+   `tsconfig.json` (`bun-types`), `types.ts`, `util.ts`, `test.ts`, `all.ts`, and every
+   `<year>/index.ts`. Also delete the committed `.DS_Store` files. Keep the old tooling until the
+   Rust CLI passes the same solutions, then remove it in one commit.
 
 **Phase 2: move each implementation onto the contract** (one commit each, verified with `aoc test`)
 
@@ -367,12 +425,16 @@ implementation carries its own toolchain.
 * `aoc new` templates per language (Cargo crate, `stack` project, and so on) that already obey the contract.
 * `aoc watch`, timing column in README, `aoc toolchain mirror` for the custom Haskell images.
 * An `aoc submit` command (it needs careful rate limiting).
+* A release workflow (on tag) that publishes `aoc` binaries for `x86_64-unknown-linux-gnu` and
+  `aarch64-apple-darwin`, for use on machines without Rust. Not needed for CI or your own machine.
 
 ---
 
 ## 7. Decisions for you
 
-1. **CLI language:** Deno/TypeScript (recommended, continuity) or Rust.
+1. **CLI language:** Rust run through the `cargo aoc` alias (recommended), or Node 24 with native
+   type-stripping (`node tools/aoc/main.ts`, no build step) if you'd rather stay in TypeScript.
+   Deno is out either way.
 2. **Data storage:** private repo with a deploy key (recommended) or git-crypt in this repo.
 3. **History scrub** of the old `2020/data` and `2024/data` example files: optional, needs a force-push.
 4. **Results cache committed** (`results.json`, recommended, makes CI incremental and the README
