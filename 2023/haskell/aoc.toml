@@ -1,0 +1,7 @@
+# One stack project per day (dayN/), with executables part1 and part2.
+language = "haskell"
+dockerfile = "Dockerfile"
+discover = "day{day}/"
+build = "cd day{day} && stack build --copy-bins --local-bin-path {cache}/bin/day{day}"
+run = "{cache}/bin/day{day}/part{part}"
+sources = "day{day}"

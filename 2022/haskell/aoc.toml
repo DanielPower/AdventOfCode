@@ -1,0 +1,7 @@
+# One stack project; Main dispatches on `day part`. Day 7 exists in src/ but
+# isn't wired into Main, so days are listed explicitly.
+language = "haskell"
+dockerfile = "Dockerfile"
+days = [1, 2, 3, 4, 5, 6]
+build = "stack build --copy-bins --local-bin-path {cache}/bin"
+run = "{cache}/bin/AdventOfCode2021Haskell-exe {day} {part}"

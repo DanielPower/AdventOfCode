@@ -1,0 +1,3 @@
+[alias]
+# `cargo aoc <command>` builds (incrementally) and runs the repository's CLI.
+aoc = "run --quiet --release --manifest-path tools/aoc/Cargo.toml --"

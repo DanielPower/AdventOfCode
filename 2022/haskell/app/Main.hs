@@ -26,4 +26,4 @@ main = do
   let (file, solutions) = days !! day
   let part = (read (args !! 1) :: Int) - 1
   let solution = solutions !! part
-  solution (readFile ("../inputs/" ++ file))
+  solution getContents

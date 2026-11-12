@@ -1,0 +1,11 @@
+# One cargo crate per day and part: {dd}/part{part}.
+language = "rust"
+image = "docker.io/library/rust:1.82.0-slim@sha256:1111c28d995d06a7863ba6cea3b3dcb87bebe65af8ec5517caaf2c8c26f38010"
+discover = "{dd}/part{part}/Cargo.toml"
+# `cargo install` puts the binary (whatever the package is called) in its own bin/.
+build = "cargo install --quiet --locked --force --path {dd}/part{part} --root {cache}/out/{dd}-{part} --target-dir {cache}/target/{dd}-{part}"
+run = "{cache}/out/{dd}-{part}/bin/*"
+sources = "{dd}/part{part}"
+
+[env]
+CARGO_HOME = "{cache}/cargo-home"

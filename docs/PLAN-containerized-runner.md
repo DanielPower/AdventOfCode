@@ -1,5 +1,28 @@
 # Plan: containerized multi-implementation runner, private test data, CI + CLI
 
+> **Status: implemented.** `README.md` is the user guide. This plan is kept for
+> the reasoning behind it. Where the implementation differs from the plan:
+>
+> * **Answers are compared with the last non-empty line of stdout**, not the
+>   whole of stdout, so debug prints are tolerated (2025 day 1 prints them).
+> * **Rust crates are built with `cargo install --root {cache}/out/...`**,
+>   because several crates' package names don't match their directory
+>   (e.g. `01/part2` is named `part1`).
+> * **The Haskell toolchains install a current `stack` (3.11.1, checksums
+>   pinned) next to the original GHC.** The `stack` shipped with the old GHC
+>   images can no longer verify Hackage's signing keys. This is the kind of
+>   bit-rot the design exists to contain.
+> * **Dockerfile-based toolchain images are rebuilt only when the Dockerfile
+>   or a file it names changes** (tracked with an image label). Unchanged
+>   toolchains work offline and don't touch the registry.
+> * **`results.json` is written only with `--save`** (which CI passes), so a
+>   local run can't vouch for a solution in CI's place.
+> * **The CI workflow has an optional Docker Hub login**, because anonymous
+>   pulls are rate-limited. **It also frees disk space**, because the Haskell
+>   images are about 6 GB each.
+> * **`aoc new`, `aoc watch` and `toolchain mirror` were not built.** They
+>   remain possible follow-ups.
+
 ## 1. How the repository works today
 
 ### Layout
