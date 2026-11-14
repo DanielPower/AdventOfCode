@@ -1,6 +1,13 @@
 /.idea/
 /node_modules
-.env
+.DS_Store
+
+# Puzzle inputs and answers are copyrighted: they live in the private data
+# repository (cloned to .aoc-data/ or $AOC_DATA_DIR), never in this one.
+/.aoc-data/
 *.in
 *.out
-.DS_Store
+.env
+
+/.aoc-cache/
+/tools/aoc/target/

@@ -1,0 +1,16 @@
+# Edition 2024 crates: needs Rust >= 1.85.
+language = "rust"
+image = "docker.io/library/rust:1.91.1-slim@sha256:f75071363e7f4771769d4cf81b1b7b290e607f4d4459e8731f6abdcee9982dc8"
+discover = "{dd}/part{part}/Cargo.toml"
+# `cargo install` puts the binary (whatever the package is called) in its own bin/.
+build = "cargo install --quiet --locked --force --path {dd}/part{part} --root {cache}/out/{dd}-{part} --target-dir {cache}/target/{dd}-{part}"
+run = "{cache}/out/{dd}-{part}/bin/*"
+sources = "{dd}/part{part}"
+
+[env]
+CARGO_HOME = "{cache}/cargo-home"
+
+# The pinned cargo creates Cargo.toml, so the edition matches this toolchain.
+[new]
+template = "template"
+command = "cargo init --quiet --vcs none --name part{part} {dd}/part{part} && cargo generate-lockfile --quiet --manifest-path {dd}/part{part}/Cargo.toml"

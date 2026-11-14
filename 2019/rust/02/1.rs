@@ -1,10 +1,9 @@
-use std::fs;
 use std::string::String;
 
 fn main() {
     let mut values = Vec::new();
     {
-        let input = fs::read_to_string("opcodes.txt")
+        let input = std::io::read_to_string(std::io::stdin())
             .expect("Something went wrong reading the file");
         let mut string_value = String::from("");
         for character in input.chars() {

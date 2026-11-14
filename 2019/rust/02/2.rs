@@ -1,11 +1,8 @@
-use std::fs;
 use std::string::String;
 
-fn read_instructions(filename: String) -> Vec<u32> {
+fn read_instructions(input: &str) -> Vec<u32> {
     let mut values = Vec::new();
     {
-        let input = fs::read_to_string(String::from(filename))
-            .expect("Something went wrong reading the file");
         let mut string_value = String::from("");
         for character in input.chars() {
             if character == ',' {
@@ -50,9 +47,11 @@ fn run(mut values: Vec<u32>) -> Vec<u32> {
 }
 
 fn main() {
+    let input = std::io::read_to_string(std::io::stdin())
+        .expect("Something went wrong reading stdin");
     'outer: for a in 0..100 {
         for b in 0..100 {
-            let mut values = read_instructions(String::from("opcodes.txt"));
+            let mut values = read_instructions(&input);
             values[1] = a;
             values[2] = b;
             values = run(values);

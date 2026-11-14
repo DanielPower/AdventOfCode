@@ -1,0 +1,8 @@
+language = "typescript"
+image = "docker.io/oven/bun:1.0.15@sha256:7f9b13805e2e87c2f573cdb9e6fc03891a35783b57dbe347e2480be2fcb9e9d5"
+discover = "{dd}/{part}.ts"
+run = "bun run {dd}/{part}.ts"
+sources = "{dd}/{part}.ts"
+
+[new]
+template = "template"

@@ -1,0 +1,2 @@
+[alias]
+aoc = "run --quiet --release --manifest-path tools/aoc/Cargo.toml --"

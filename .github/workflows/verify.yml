@@ -1,0 +1,115 @@
+# Puzzle inputs and answers are copyrighted and this repository is public, so
+# public logs must never contain them: `aoc test --ci` prints only pass/fail
+# categories and masks every answer, and fork pull requests (which never get
+# secrets) only build.
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "23 7 * * 1" # weekly full re-verification: catches toolchain/registry rot
+  workflow_dispatch:
+    inputs:
+      all:
+        description: Re-verify everything, ignoring results.json
+        type: boolean
+        default: false
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write # commit README.md and results.json on main
+    env:
+      # Never run untrusted (fork) code with the data: it could print the input.
+      TRUSTED: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+      HAS_DATA_KEY: ${{ secrets.AOC_DATA_DEPLOY_KEY != '' }}
+      HAS_DOCKERHUB: ${{ secrets.DOCKERHUB_TOKEN != '' }}
+      AOC_CACHE_DIR: ${{ github.workspace }}/.aoc-cache
+      AOC_DATA_DIR: ${{ github.workspace }}/.aoc-data
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # `aoc build --since` needs history
+
+      - name: Check out the private puzzle data
+        if: env.TRUSTED == 'true' && env.HAS_DATA_KEY == 'true'
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ vars.AOC_DATA_REPO || format('{0}-data', github.repository) }}
+          ssh-key: ${{ secrets.AOC_DATA_DEPLOY_KEY }}
+          path: .aoc-data
+          persist-credentials: false
+
+      - name: Log in to Docker Hub
+        if: env.TRUSTED == 'true' && env.HAS_DOCKERHUB == 'true'
+        uses: docker/login-action@v4
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Free disk space for toolchain images
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tools/aoc
+
+      - name: Build and test the aoc CLI
+        run: |
+          cargo test --release --locked --manifest-path tools/aoc/Cargo.toml
+          cargo build --release --locked --manifest-path tools/aoc/Cargo.toml
+          echo "$PWD/tools/aoc/target/release" >> "$GITHUB_PATH"
+
+      - name: Restore solution build caches
+        uses: actions/cache@v6
+        with:
+          path: .aoc-cache
+          key: aoc-cache-${{ runner.os }}-${{ hashFiles('*/*/aoc.toml', '*/*/**/Cargo.lock', '*/*/**/stack.yaml.lock') }}
+          restore-keys: aoc-cache-${{ runner.os }}-
+
+      - name: Verify solutions
+        if: env.TRUSTED == 'true' && env.HAS_DATA_KEY == 'true'
+        run: |
+          changed=--changed
+          if [ "${{ github.event_name }}" = schedule ] || [ "${{ inputs.all }}" = true ]; then changed=; fi
+          aoc test --ci --save $changed
+
+      - name: Build changed implementations (no puzzle data available)
+        if: env.TRUSTED != 'true' || env.HAS_DATA_KEY != 'true'
+        run: |
+          case "${{ github.event_name }}" in
+            pull_request) since="origin/${{ github.base_ref }}" ;;
+            push) since="${{ github.event.before }}" ;;
+            *) since= ;;
+          esac
+          if [ -n "$since" ] && git cat-file -e "$since^{commit}" 2>/dev/null; then
+            aoc build --since "$since"
+          else
+            aoc build
+          fi
+
+      - name: Commit README.md and results.json
+        # Also after a failed verification, so the README shows what broke.
+        if: ${{ !cancelled() && env.HAS_DATA_KEY == 'true' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+        run: |
+          aoc readme
+          if git diff --quiet -- README.md results.json; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md results.json
+          git commit -m "Update progress"
+          git pull --rebase
+          git push

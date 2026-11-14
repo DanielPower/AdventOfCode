@@ -1,0 +1,5 @@
+language = "haskell"
+dockerfile = "Dockerfile"
+discover = "src/Day{day}.hs"
+build = "stack build --copy-bins --local-bin-path {cache}/bin"
+run = "{cache}/bin/AdventOfCode2021Haskell-exe {day} {part}"

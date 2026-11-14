@@ -1,0 +1,22 @@
+[package]
+name = "aoc"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Build, run and verify Advent of Code solutions in pinned containers"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+humantime = "2"
+ignore = "0.4"
+regex = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+toml = "0.8"
+ureq = "2"
+wait-timeout = "0.2"
+
+[profile.release]
+debug = false

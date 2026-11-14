@@ -1,4 +1,3 @@
-use std::fs;
 use std::string::String;
 
 struct Point {
@@ -12,7 +11,7 @@ fn read_input(filename: String) -> Vec<Vec<Point>> {
         vec![Point {x: 0, y: 0}],
     ];
 
-    let input = fs::read_to_string(String::from(filename))
+    let input = std::io::read_to_string(std::io::stdin())
         .expect("Something went wrong reading the file");
 
     let mut dir = Point {x: 1, y: 1};

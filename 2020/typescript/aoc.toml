@@ -1,0 +1,13 @@
+# Remote imports are fetched in the build step; runs are offline (--cached-only).
+language = "typescript"
+image = "docker.io/denoland/deno:1.46.3@sha256:5c2dd16fe7794631ce03f3ee48c983fe6240da4c574f4705ed52a091e1baa098"
+discover = "{dd}/{part}.ts"
+build = "deno cache {dd}/{part}.ts"
+run = "deno run --cached-only {dd}/{part}.ts"
+sources = "{dd}/{part}.ts"
+
+[env]
+DENO_DIR = "{cache}/deno"
+
+[new]
+template = "template"

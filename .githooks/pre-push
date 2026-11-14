@@ -1,0 +1,6 @@
+#!/bin/sh
+# Installed by `cargo aoc setup`. Records answers for the solutions being pushed
+# and pushes the private data repository first. Never blocks a push.
+command -v cargo >/dev/null 2>&1 || exit 0
+cargo aoc hook pre-push "$@" || true
+exit 0
