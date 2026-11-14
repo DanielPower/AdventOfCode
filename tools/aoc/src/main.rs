@@ -13,6 +13,7 @@ mod pool;
 mod readme;
 mod results;
 mod scaffold;
+mod sync;
 
 use anyhow::{Context, Result, bail};
 use clap::{Args, Parser, Subcommand};
@@ -118,8 +119,26 @@ enum Cmd {
     /// Manage toolchain images
     #[command(subcommand)]
     Toolchain(ToolchainCmd),
+    /// One-time setup: clone the private data repository and install the git hooks
+    Setup {
+        /// URL of the (private) data repository, e.g. git@github.com:you/AdventOfCode-data.git
+        #[arg(long, value_name = "URL")]
+        data_repo: Option<String>,
+    },
     /// Check that everything needed is set up
     Doctor,
+    /// Git hook entry points (installed by `setup`)
+    #[command(subcommand, hide = true)]
+    Hook(HookCmd),
+}
+
+#[derive(Subcommand)]
+enum HookCmd {
+    /// Record answers for the solutions being pushed and push the data repository
+    PrePush {
+        remote: Option<String>,
+        url: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -132,6 +151,9 @@ enum DataCmd {
         #[arg(long)]
         force: bool,
     },
+    /// Pull the data repository, then commit and push anything outstanding
+    /// (normally automatic)
+    Sync,
     /// Print the data directory's path
     Path,
 }
@@ -294,6 +316,19 @@ fn run(cli: Cli) -> Result<bool> {
         Cmd::Data(DataCmd::Import { from, force }) => {
             data::import(&ctx, &from.unwrap_or_else(|| ctx.root.clone()), force).map(|_| true)
         }
+        Cmd::Data(DataCmd::Sync) => sync::sync_now(&ctx).map(|_| true),
+        Cmd::Setup { data_repo } => sync::setup(&ctx, data_repo.as_deref()).map(|_| true),
+        Cmd::Hook(HookCmd::PrePush { .. }) => {
+            // Never block a push: report problems and carry on.
+            let mut stdin = String::new();
+            let _ = std::io::Read::read_to_string(&mut std::io::stdin(), &mut stdin);
+            let result = manifest::load_all(&ctx.root)
+                .and_then(|impls| sync::pre_push(&ctx, &impls, &stdin));
+            if let Err(e) = result {
+                eprintln!("data: pre-push sync failed ({e:#}); pushing anyway");
+            }
+            Ok(true)
+        }
         Cmd::Data(DataCmd::Path) => {
             println!("{}", ctx.data_dir.display());
             Ok(true)
@@ -426,13 +461,18 @@ fn doctor(ctx: &Ctx) -> Result<bool> {
             let mut missing = 0;
             for imp in &impls {
                 for s in &imp.solutions {
-                    if data::input(ctx, imp.year, s.day)?.is_none()
-                        || data::answers(ctx, imp.year, s.day)?
-                            .expected(s.part)
-                            .is_none()
-                    {
-                        missing += 1;
-                    }
+                    // Unreadable data counts as missing here (and is reported).
+                    let has = data::input(ctx, imp.year, s.day)
+                        .map(|i| i.is_some())
+                        .unwrap_or(false)
+                        && match data::answers(ctx, imp.year, s.day) {
+                            Ok(a) => a.expected(s.part).is_some(),
+                            Err(e) => {
+                                println!("❌ {e:#}");
+                                false
+                            }
+                        };
+                    missing += usize::from(!has);
                 }
             }
             let has_data = ctx.data_dir.is_dir();
@@ -449,6 +489,12 @@ fn doctor(ctx: &Ctx) -> Result<bool> {
         }
         Err(e) => check(false, format!("manifests: {e:#}")),
     }
+    let (synced, what) = sync::describe(ctx);
+    check(synced, what);
+    check(
+        sync::hooks_installed(ctx),
+        "git hooks installed (cargo aoc setup)".into(),
+    );
     let session = ctx.var("AOC_SESSION").is_some();
     println!(
         "{} AOC_SESSION {}",

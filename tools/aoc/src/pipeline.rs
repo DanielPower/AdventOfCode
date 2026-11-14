@@ -7,6 +7,7 @@ use crate::manifest::{BUILD_TIMEOUT, Impl};
 use crate::model::{Selector, Solution};
 use crate::pool::parallel_map;
 use crate::results::{self, Entry, Keyer, Status, Store};
+use crate::sync;
 use anyhow::{Context, Result, bail};
 use serde::Serialize;
 use std::collections::{BTreeMap, HashMap};
@@ -249,6 +250,27 @@ pub fn test(ctx: &Ctx, engine: &Engine, impls: &[Impl], work: Work, o: &TestOpts
     let mut cases = Vec::new();
     let mut unchanged = 0;
     let mut day_data: HashMap<(u16, u8), DayData> = HashMap::new();
+
+    // Another machine may have downloaded what's missing here: pull first.
+    if !o.ci {
+        let mut missing = false;
+        for (i, sols) in &work {
+            let imp = &impls[*i];
+            for s in sols {
+                missing |= if o.examples {
+                    data::examples(ctx, imp.year, s.day)?.is_empty()
+                } else {
+                    data::input(ctx, imp.year, s.day)?.is_none()
+                        || data::answers(ctx, imp.year, s.day)?
+                            .expected(s.part)
+                            .is_none()
+                };
+            }
+        }
+        if missing {
+            sync::refresh(ctx);
+        }
+    }
 
     for (i, sols) in &work {
         let imp = &impls[*i];
@@ -524,7 +546,7 @@ pub fn run_one(
             std::fs::read(p).with_context(|| format!("reading {}", p.display()))?,
             None,
         ),
-        None => match data::input(ctx, year, sol.day)? {
+        None => match data_input_refreshed(ctx, year, sol)? {
             Some(b) => (b, data::answers(ctx, year, sol.day)?.expected(sol.part)),
             None => bail!(
                 "no input for {year}/{:02}: pass --input FILE or run `cargo aoc fetch {year} {}`",
@@ -560,6 +582,18 @@ pub fn run_one(
         fmt_duration(out.elapsed)
     );
     Ok(out.ok())
+}
+
+/// The day's input, pulling the data repository first if the input or this
+/// part's answer is missing locally (another machine may have recorded it).
+fn data_input_refreshed(ctx: &Ctx, year: u16, sol: Solution) -> Result<Option<Vec<u8>>> {
+    let answered = data::answers(ctx, year, sol.day)?
+        .expected(sol.part)
+        .is_some();
+    if !answered || data::input(ctx, year, sol.day)?.is_none() {
+        sync::refresh(ctx);
+    }
+    data::input(ctx, year, sol.day)
 }
 
 /// `aoc list`

@@ -23,6 +23,9 @@
 > * **`aoc new` scaffolds from a per-implementation `[new]` section**: a
 >   template folder copied with `{{day}}`-style placeholders, then an optional
 >   command run in the toolchain container (e.g. `cargo init`).
+> * **`cargo aoc` owns the data repository**: it pulls, commits and pushes it
+>   itself, and a pre-push hook records answers before solutions are pushed,
+>   so you never manage it by hand.
 > * **`aoc watch` and `toolchain mirror` were not built.** They remain possible
 >   follow-ups.
 

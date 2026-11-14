@@ -171,6 +171,8 @@ cargo aoc build --since main         # build implementations changed since a git
 cargo aoc fetch 2025 7               # download input + your submitted answers
 cargo aoc readme                     # rebuild the progress table from results.json
 cargo aoc toolchain pin 2025/rust    # resolve an image tag to a digest
+cargo aoc setup --data-repo URL      # one-time: clone the data repo, install hooks
+cargo aoc data sync                  # sync the data repo now (normally automatic)
 cargo aoc doctor                     # check the setup
 ```
 
@@ -178,6 +180,19 @@ Selectors are `YEAR`, `YEAR/DAY` or `YEAR/DAY/PART`. Run `cargo aoc help <comman
 for all options.
 
 ## Workflow
+
+After one-time setup (below) you only ever work in this repository: `cargo aoc`
+commits and pushes the private data repository itself.
+
+**One-time setup on each machine:**
+
+1. Create an empty **private** repository on GitHub for the puzzle data, e.g.
+   `AdventOfCode-data` (once; not per machine).
+2. Put your adventofcode.com `session` cookie in `.env` (see [Puzzle data](#puzzle-data)).
+3. `cargo aoc setup --data-repo git@github.com:<you>/AdventOfCode-data.git`.
+   This clones the data repository into `.aoc-data/`, installs this repository's
+   git hooks, and downloads inputs and answers for any existing solutions that
+   lack them.
 
 **New implementation** (a language in a year):
 
@@ -199,20 +214,23 @@ for all options.
    run `cargo aoc fetch 2026 8` to record that answer.
 
 **Test cases:** example inputs come from the puzzle text, so they live in the
-data repository as well. Add `2026/08/1.txt` and an `examples.toml` with the
-expected answers (see [Puzzle data](#puzzle-data)), then run
-`cargo aoc test 2026/8 --examples`. Use `--input FILE` (or `-` for stdin) with
+data repository as well. Add `.aoc-data/2026/08/1.txt` and an `examples.toml`
+with the expected answers (see [Puzzle data](#puzzle-data)), then run
+`cargo aoc test 2026/8 --examples`. They're committed and pushed with the next
+sync, at the latest when you next push. Use `--input FILE` (or `-` for stdin) with
 `cargo aoc run` for one-off inputs.
 
-**Pushing:**
+**Pushing:** commit the solution (for Rust, its `Cargo.toml`, `Cargo.lock` and
+`src/`) and `git push`.
 
-1. Commit and push the data repository first: the input, `answers.toml` and any examples.
-2. Commit the solution (for Rust, its `Cargo.toml`, `Cargo.lock` and `src/`) and
-   push to `main`. A pull request from a branch is also checked against your
-   data, but only `main` updates the README.
-3. CI verifies the changed solutions and commits the progress table. Run
-   `git pull --rebase` before you next push. If the data arrived after the
-   solution, re-run the workflow from the Actions tab.
+1. The pre-push hook first records the answers you've submitted for the
+   solutions being pushed. It then pushes the data repository, so CI finds
+   everything it needs. It never blocks a push.
+2. CI verifies the changed solutions and commits the progress table to `main`.
+   Run `git pull --rebase` before you next push.
+
+A pull request from a branch is also checked against your data, but only `main`
+updates the README.
 
 ## Puzzle data
 
@@ -229,20 +247,35 @@ live in a separate **private** repository, laid out as:
 For "read the letters off the ASCII art" puzzles, use `part2_output = """..."""`
 in `answers.toml` to compare the full output instead.
 
-Clone it to `.aoc-data/` (gitignored) or point `AOC_DATA_DIR` at it. Settings
-can also go in a gitignored `.env` file at the repository root:
+`cargo aoc setup --data-repo <url>` clones it to `.aoc-data/` (gitignored), or
+to `AOC_DATA_DIR` if that is set. Settings go in a gitignored `.env` file at the
+repository root:
 
 ```sh
-AOC_DATA_DIR=~/src/AdventOfCode-data
-AOC_SESSION=...           # the `session` cookie from adventofcode.com, for `fetch`
+AOC_SESSION=...           # the `session` cookie from adventofcode.com
 AOC_USER_AGENT="github.com/DanielPower/AdventOfCode by you@example.com"
+# AOC_DATA_DIR=~/src/AdventOfCode-data   # if not .aoc-data/
+# AOC_DATA_SYNC=off                      # to manage the data repository yourself
 ```
 
 `cargo aoc fetch YEAR [DAY]` downloads inputs and scrapes the answers you have
 already submitted from the puzzle pages. It skips files that exist and waits
-between requests. Commit the results to the data repository.
+between requests. `cargo aoc new` does the same for the day it scaffolds.
 `cargo aoc data import` moves files from the old layout (`<year>/data/DD.in`,
 `DD.P.out`) into the data directory.
+
+**You never commit to the data repository yourself.** `cargo aoc` keeps it in
+sync:
+
+* `new`, `fetch` and `data import` pull first, then commit and push what they wrote.
+* `test` and `run` pull (at most every 5 minutes) when an input or answer is
+  missing locally, so data recorded on another machine turns up.
+* The pre-push hook records answers for the solutions you push (up to 6 days per
+  push; for more, run `cargo aoc setup` again) and pushes the data repository.
+* Offline, changes are committed locally and pushed by the next sync.
+  `cargo aoc data sync` forces one, and `cargo aoc doctor` shows the state.
+* If two machines changed the same file, nothing is overwritten:
+  the sync stops and prints the `git` command to resolve it.
 
 ## Continuous integration
 
@@ -261,7 +294,7 @@ Pull requests from forks get no secrets, so they only build.
 
 One-time setup:
 
-1. Create a private repository, e.g. `AdventOfCode-data`, with the layout above.
+1. Set up the data repository (see [Workflow](#workflow)).
 2. `ssh-keygen -t ed25519 -f aoc-data-key -N ""`. Add `aoc-data-key.pub` as a
    **read-only deploy key** on the data repository, and the private key as the
    secret `AOC_DATA_DEPLOY_KEY` on this one.

@@ -1,0 +1,9 @@
+#!/bin/sh
+# Installed by `cargo aoc setup` (git config core.hooksPath .githooks).
+#
+# Before solutions are pushed, record any missing puzzle inputs/answers for
+# them and push the private data repository, so CI can verify the solutions.
+# Never blocks a push.
+command -v cargo >/dev/null 2>&1 || exit 0
+cargo aoc hook pre-push "$@" || true
+exit 0

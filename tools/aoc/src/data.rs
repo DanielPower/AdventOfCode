@@ -9,6 +9,7 @@
 
 use crate::ctx::Ctx;
 use crate::model::{days_in_year, parts_for_day};
+use crate::sync;
 use anyhow::{Context, Result, bail};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -251,11 +252,24 @@ pub fn import(ctx: &Ctx, from: &Path, force: bool) -> Result<()> {
         "imported {inputs} inputs and {answers} answers into {} ({skipped} already present; --force to overwrite)",
         ctx.data_dir.display()
     );
+    sync::save(ctx);
     Ok(())
 }
 
 /// Download inputs and your already-submitted answers from adventofcode.com.
 pub fn fetch(ctx: &Ctx, year: u16, day: Option<u8>, force: bool) -> Result<()> {
+    let max = days_in_year(year);
+    let days: Vec<(u16, u8)> = match day {
+        Some(d) if (1..=max).contains(&d) => vec![(year, d)],
+        Some(_) => bail!("{year} has days 1-{max}"),
+        None => (1..=max).map(|d| (year, d)).collect(),
+    };
+    fetch_days(ctx, &days, force)
+}
+
+/// Fetch several days, bracketed by one pull and one commit+push of the data
+/// repository. Whatever was downloaded is saved even if a later request fails.
+pub fn fetch_days(ctx: &Ctx, days: &[(u16, u8)], force: bool) -> Result<()> {
     let session = ctx.var("AOC_SESSION").context(
         "AOC_SESSION is not set: copy the `session` cookie from adventofcode.com into the environment or .env",
     )?;
@@ -263,56 +277,57 @@ pub fn fetch(ctx: &Ctx, year: u16, day: Option<u8>, force: bool) -> Result<()> {
         eprintln!("note: set AOC_USER_AGENT to something that identifies you (AoC asks automated tools to include contact info)");
         format!("aoc-runner/{}", env!("CARGO_PKG_VERSION"))
     });
-    let max = days_in_year(year);
-    let days: Vec<u8> = match day {
-        Some(d) if (1..=max).contains(&d) => vec![d],
-        Some(_) => bail!("{year} has days 1-{max}"),
-        None => (1..=max).collect(),
-    };
     let mut client = Client {
         session,
         agent,
         last: None,
     };
-    for day in days {
-        if !unlocked(year, day) {
-            eprintln!("{year}/{day:02}: not unlocked yet");
-            break;
-        }
-        let dir = day_dir(ctx, year, day);
-        std::fs::create_dir_all(&dir).with_context(|| format!("creating {}", dir.display()))?;
+    // Pull first: another machine may already have downloaded these.
+    sync::pull(ctx);
+    let result = days
+        .iter()
+        .try_for_each(|&(year, day)| fetch_day(ctx, &mut client, year, day, force));
+    sync::save(ctx);
+    result
+}
 
-        let input_path = dir.join("input.txt");
-        if force || !input_path.exists() {
-            match client.get(&format!("https://adventofcode.com/{year}/day/{day}/input"))? {
-                Some(body) => {
-                    std::fs::write(&input_path, body)?;
-                    eprintln!("{year}/{day:02}: saved input");
-                }
-                None => eprintln!("{year}/{day:02}: no input available"),
+fn fetch_day(ctx: &Ctx, client: &mut Client, year: u16, day: u8, force: bool) -> Result<()> {
+    if !unlocked(year, day) {
+        eprintln!("{year}/{day:02}: not unlocked yet");
+        return Ok(());
+    }
+    let dir = day_dir(ctx, year, day);
+    std::fs::create_dir_all(&dir).with_context(|| format!("creating {}", dir.display()))?;
+
+    let input_path = dir.join("input.txt");
+    if force || !input_path.exists() {
+        match client.get(&format!("https://adventofcode.com/{year}/day/{day}/input"))? {
+            Some(body) => {
+                std::fs::write(&input_path, body)?;
+                eprintln!("{year}/{day:02}: saved input");
+            }
+            None => eprintln!("{year}/{day:02}: no input available"),
+        }
+    }
+
+    let answers_path = dir.join("answers.toml");
+    let mut answers = read_answers(&answers_path)?;
+    let parts = parts_for_day(year, day);
+    if force || parts.iter().any(|&p| !answers.has(p)) {
+        let Some(page) = client.get(&format!("https://adventofcode.com/{year}/day/{day}"))? else {
+            return Ok(());
+        };
+        let found = scrape_answers(&page);
+        let mut saved = 0;
+        for (&part, value) in parts.iter().zip(found) {
+            if force || !answers.has(part) {
+                answers.set(part, value);
+                saved += 1;
             }
         }
-
-        let answers_path = dir.join("answers.toml");
-        let mut answers = read_answers(&answers_path)?;
-        let parts = parts_for_day(year, day);
-        if force || parts.iter().any(|&p| !answers.has(p)) {
-            let Some(page) = client.get(&format!("https://adventofcode.com/{year}/day/{day}"))?
-            else {
-                continue;
-            };
-            let found = scrape_answers(&page);
-            let mut saved = 0;
-            for (&part, value) in parts.iter().zip(found) {
-                if force || !answers.has(part) {
-                    answers.set(part, value);
-                    saved += 1;
-                }
-            }
-            if saved > 0 {
-                write_answers(&answers_path, &answers)?;
-                eprintln!("{year}/{day:02}: saved {saved} answer(s)");
-            }
+        if saved > 0 {
+            write_answers(&answers_path, &answers)?;
+            eprintln!("{year}/{day:02}: saved {saved} answer(s)");
         }
     }
     Ok(())
@@ -367,7 +382,7 @@ pub fn scrape_answers(html: &str) -> Vec<String> {
 }
 
 /// Puzzles unlock at midnight EST (05:00 UTC) on December `day`.
-fn unlocked(year: u16, day: u8) -> bool {
+pub fn unlocked(year: u16, day: u8) -> bool {
     let unlock = days_from_civil(year as i64, 12, day as i64) * 86_400 + 5 * 3600;
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
