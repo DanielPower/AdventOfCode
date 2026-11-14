@@ -280,7 +280,7 @@ pub fn fetch(ctx: &Ctx, year: u16, day: Option<u8>, force: bool) -> Result<()> {
             break;
         }
         let dir = day_dir(ctx, year, day);
-        std::fs::create_dir_all(&dir)?;
+        std::fs::create_dir_all(&dir).with_context(|| format!("creating {}", dir.display()))?;
 
         let input_path = dir.join("input.txt");
         if force || !input_path.exists() {

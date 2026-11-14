@@ -50,6 +50,9 @@ enum Cmd {
         /// Run the [new] command with the host's toolchain instead of the container
         #[arg(long)]
         native: bool,
+        /// Don't download the input and answers afterwards
+        #[arg(long)]
+        no_fetch: bool,
     },
     /// Build solutions (needs no puzzle data)
     Build {
@@ -208,6 +211,7 @@ fn run(cli: Cli) -> Result<bool> {
             part,
             imp,
             native,
+            no_fetch,
         } => {
             let impls = manifest::load_all(&ctx.root)?;
             let engine = Engine { ctx: &ctx, native };
@@ -216,6 +220,7 @@ fn run(cli: Cli) -> Result<bool> {
                 day,
                 part,
                 imp: imp.as_deref(),
+                fetch: !no_fetch,
             };
             scaffold::new_solution(&ctx, &engine, &impls, &opts)
         }

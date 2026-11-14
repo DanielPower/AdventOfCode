@@ -119,7 +119,10 @@ command = "cargo init --vcs none --name part{part} {dd}/part{part}"  # then run 
 
 ### Scaffolding: `[new]`
 
-`cargo aoc new YEAR DAY [PART]` creates a solution from the implementation's `[new]` section:
+`cargo aoc new YEAR DAY [PART]` creates a solution from the implementation's
+`[new]` section, then downloads the day's input and any answers you've already
+submitted, as `fetch` would. Use `--no-fetch` to skip the download, for example
+when offline. A failed download never undoes the scaffold.
 
 1. **`template`** names a folder that mirrors the implementation's layout. Its
    files are copied in, with `{{year}} {{day}} {{dd}} {{part}}` expanded in both
@@ -156,7 +159,7 @@ incrementally after that, so it works from anywhere in the repository.
 
 ```sh
 cargo aoc list                       # implementations and their solutions
-cargo aoc new 2025 8                 # scaffold day 8 part 1 from the [new] template
+cargo aoc new 2025 8                 # scaffold day 8 part 1 and download its input
 cargo aoc new 2025 8 2               # ...and part 2 (--impl ID if the year has several)
 cargo aoc test 2025/7                # build, run and check day 7 (all implementations)
 cargo aoc test 2025 --impl rust      # one implementation
@@ -187,12 +190,13 @@ for all options.
 
 **New day:**
 
-1. `cargo aoc fetch 2026 8` downloads the input into the data repository (once the puzzle unlocks).
-2. `cargo aoc new 2026 8` scaffolds part 1, with the stdin boilerplate already written.
-3. Iterate. `cargo aoc run 2026 8 1 --native` is fast. `cargo aoc test 2026/8/1`
+1. `cargo aoc new 2026 8` scaffolds part 1, with the stdin boilerplate already
+   written, and downloads the input into the data repository.
+2. Iterate. `cargo aoc run 2026 8 1 --native` is fast. `cargo aoc test 2026/8/1`
    uses the pinned container, and prints `output: ...` until an answer is recorded.
-4. Submit the answer on adventofcode.com, then run `cargo aoc fetch 2026 8` again
-   to record it. Do the same for part 2, starting with `cargo aoc new 2026 8 2`.
+3. Submit the answer on adventofcode.com. Then run `cargo aoc new 2026 8 2` to
+   scaffold part 2; it also records part 1's answer. After submitting part 2,
+   run `cargo aoc fetch 2026 8` to record that answer.
 
 **Test cases:** example inputs come from the puzzle text, so they live in the
 data repository as well. Add `2026/08/1.txt` and an `examples.toml` with the

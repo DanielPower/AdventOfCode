@@ -25,6 +25,8 @@ pub struct NewOpts<'a> {
     pub day: u8,
     pub part: Option<u8>,
     pub imp: Option<&'a str>,
+    /// Download the input (and any submitted answers) after scaffolding.
+    pub fetch: bool,
 }
 
 pub fn new_solution(ctx: &Ctx, engine: &Engine, impls: &[Impl], o: &NewOpts) -> Result<bool> {
@@ -169,13 +171,31 @@ pub fn new_solution(ctx: &Ctx, engine: &Engine, impls: &[Impl], o: &NewOpts) -> 
             ctx.rel(&imp.dir.join(manifest::MANIFEST)).display()
         );
     }
-    if data::input(ctx, year, day)?.is_none() {
+    if o.fetch {
+        fetch(ctx, year, day);
+    } else if data::input(ctx, year, day)?.is_none() {
         println!("next: cargo aoc fetch {year} {day}");
     }
     println!(
         "then: cargo aoc test {year}/{day}/{part}   (or: cargo aoc run {year} {day} {part} --native)"
     );
     Ok(true)
+}
+
+/// Download the day's input and any answers already submitted (so scaffolding
+/// part 2 also records part 1's answer). Problems here never undo the scaffold.
+fn fetch(ctx: &Ctx, year: u16, day: u8) {
+    if ctx.var("AOC_SESSION").is_none() {
+        println!(
+            "note: AOC_SESSION isn't set, so nothing was downloaded; set it in .env, then run `cargo aoc fetch {year} {day}`"
+        );
+        return;
+    }
+    if let Err(e) = data::fetch(ctx, year, Some(day), false) {
+        eprintln!(
+            "warning: couldn't fetch {year} day {day}: {e:#}\n(the scaffold is in place; retry with `cargo aoc fetch {year} {day}`)"
+        );
+    }
 }
 
 /// Files in the implementation (respecting .gitignore, so build output is skipped).
