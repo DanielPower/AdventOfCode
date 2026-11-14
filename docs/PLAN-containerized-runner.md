@@ -26,6 +26,9 @@
 > * **`cargo aoc` owns the data repository**: it pulls, commits and pushes it
 >   itself, and a pre-push hook records answers before solutions are pushed,
 >   so you never manage it by hand.
+> * **The CLI's toolchain pin (`rust-toolchain.toml`) is at the repository
+>   root**, not in `tools/aoc/`: rustup picks the toolchain by current
+>   directory, so the pin was ignored by `cargo aoc` and in CI.
 > * **`aoc watch` and `toolchain mirror` were not built.** They remain possible
 >   follow-ups.
 

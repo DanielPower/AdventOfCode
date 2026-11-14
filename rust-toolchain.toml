@@ -1,0 +1,8 @@
+# Pins the Rust toolchain for the `aoc` CLI (tools/aoc). It lives at the
+# repository root because rustup chooses the toolchain from the current
+# directory, and `cargo aoc` runs from anywhere in the repository. Solutions
+# are unaffected: they build in their own pinned containers.
+[toolchain]
+channel = "1.97.0"
+profile = "minimal"
+components = ["clippy", "rustfmt"]
