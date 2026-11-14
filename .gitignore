@@ -9,6 +9,5 @@
 *.out
 .env
 
-# Build output
 /.aoc-cache/
 /tools/aoc/target/

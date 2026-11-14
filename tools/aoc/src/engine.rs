@@ -57,7 +57,6 @@ impl Outcome {
         matches!(self.exit, Exit::Code(0))
     }
 
-    /// Last `n` lines of stderr, for error reports.
     pub fn stderr_tail(&self, n: usize) -> String {
         let s = String::from_utf8_lossy(&self.stderr);
         let lines: Vec<&str> = s.lines().collect();

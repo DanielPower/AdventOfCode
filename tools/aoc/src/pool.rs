@@ -1,5 +1,3 @@
-//! A small bounded worker pool.
-
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 

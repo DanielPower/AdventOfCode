@@ -1,10 +1,7 @@
-//! Calendar rules and the `YEAR[/DAY[/PART]]` selector.
-
 use anyhow::{Context, Result, bail};
 use std::fmt;
 use std::str::FromStr;
 
-/// Number of puzzles in a year: 25 until 2024, 12 from 2025 on.
 pub fn days_in_year(year: u16) -> u8 {
     if year >= 2025 { 12 } else { 25 }
 }

@@ -1,18 +1,13 @@
-//! Where things live: repository root, private data, build caches, container runtime.
-
 use anyhow::{Result, bail};
 use std::collections::HashMap;
 use std::env;
 use std::path::{Path, PathBuf};
 
 pub struct Ctx {
-    /// Repository root (the directory containing `tools/aoc`).
     pub root: PathBuf,
-    /// Private inputs/answers: `<data_dir>/<year>/<dd>/{input.txt,answers.toml}`.
     pub data_dir: PathBuf,
     /// Per-implementation build caches, mounted at `/cache` in containers.
     pub cache_dir: PathBuf,
-    /// `docker` or `podman`.
     pub runtime: String,
     /// Optional CA bundle for builds behind a TLS-intercepting proxy.
     pub extra_ca: Option<PathBuf>,

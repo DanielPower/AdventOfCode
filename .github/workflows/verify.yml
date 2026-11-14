@@ -1,11 +1,3 @@
-# Builds and verifies solutions in their pinned toolchain containers, then
-# commits the regenerated progress table (README.md) and results.json.
-#
-# Setup (see README.md, "Continuous integration"):
-#   secret AOC_DATA_DEPLOY_KEY  read-only deploy key for the private data repo
-#   var    AOC_DATA_REPO        owner/name of that repo (default: <this repo>-data)
-#   optional: var DOCKERHUB_USERNAME + secret DOCKERHUB_TOKEN to avoid pull rate limits
-#
 # Puzzle inputs and answers are copyrighted and this repository is public, so
 # public logs must never contain them: `aoc test --ci` prints only pass/fail
 # categories and masks every answer, and fork pull requests (which never get

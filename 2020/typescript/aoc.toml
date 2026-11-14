@@ -9,6 +9,5 @@ sources = "{dd}/{part}.ts"
 [env]
 DENO_DIR = "{cache}/deno"
 
-# `cargo aoc new YEAR DAY [PART]` copies template/, expanding {{year}} {{day}} {{dd}} {{part}}.
 [new]
 template = "template"

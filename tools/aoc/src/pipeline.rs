@@ -1,5 +1,3 @@
-//! Selecting solutions, building them, and running them against the data.
-
 use crate::ctx::Ctx;
 use crate::data::{self, Answers, Expected};
 use crate::engine::{Engine, Exec, Exit, Outcome, Phase};
@@ -103,7 +101,6 @@ fn indent(s: &str) -> String {
         .join("\n")
 }
 
-/// Build failures, keyed by (impl index, solution).
 pub struct Built {
     pub images: HashMap<usize, String>,
     pub failed: HashMap<(usize, Solution), String>,
@@ -219,7 +216,6 @@ pub struct TestOpts {
     pub json: Option<PathBuf>,
 }
 
-/// A day's input (if downloaded) and recorded answers.
 type DayData = (Option<std::sync::Arc<Vec<u8>>>, Answers);
 
 struct Case {
@@ -596,7 +592,6 @@ fn data_input_refreshed(ctx: &Ctx, year: u16, sol: Solution) -> Result<Option<Ve
     data::input(ctx, year, sol.day)
 }
 
-/// `aoc list`
 pub fn list(ctx: &Ctx, impls: &[Impl], work: &Work) {
     for (i, sols) in work {
         let imp = &impls[*i];

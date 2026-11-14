@@ -86,7 +86,6 @@ impl Store {
         Ok(())
     }
 
-    /// Drop entries for solutions that no longer exist.
     pub fn prune(&mut self, impls: &[Impl]) {
         let live: std::collections::HashSet<String> = impls
             .iter()

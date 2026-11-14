@@ -1,5 +1,3 @@
-//! Regenerates the progress block in README.md from results.json.
-
 use crate::manifest::Impl;
 use crate::model::{Solution, days_in_year, parts_for_day};
 use crate::results::{Status, Store};

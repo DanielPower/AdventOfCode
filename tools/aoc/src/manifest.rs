@@ -16,7 +16,6 @@ pub const BUILD_TIMEOUT: Duration = Duration::from_secs(30 * 60);
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct Manifest {
-    /// Language label used in reports.
     pub language: String,
     /// Toolchain image, pinned by digest (`name:tag@sha256:...`).
     pub image: Option<String>,
@@ -36,14 +35,12 @@ pub struct Manifest {
     /// Path (template) whose files identify one solution's source, for cache
     /// keys. Defaults to the whole implementation directory.
     pub sources: Option<String>,
-    /// Run timeout, e.g. "60s" or "5m".
     pub timeout: Option<String>,
     #[serde(default)]
     pub env: BTreeMap<String, String>,
     /// Per-day overrides: `[day.12] timeout = "5m"`.
     #[serde(default)]
     pub day: BTreeMap<String, DayConfig>,
-    /// How `aoc new` scaffolds a solution.
     pub new: Option<NewConfig>,
 }
 
@@ -124,7 +121,6 @@ impl Impl {
         s
     }
 
-    /// The source path for one solution, relative to the implementation dir.
     pub fn sources_path(&self, sol: Solution) -> PathBuf {
         match &self.manifest.sources {
             Some(t) => self.dir.join(self.expand(t, Some(sol), "", "")),
@@ -146,7 +142,6 @@ fn has_solution_placeholder(s: &str) -> bool {
     ["{day}", "{dd}", "{part}"].iter().any(|p| s.contains(p))
 }
 
-/// Load every `<year>/<impl>/aoc.toml` under the repository root.
 pub fn load_all(root: &Path) -> Result<Vec<Impl>> {
     let mut impls = Vec::new();
     let mut years: Vec<_> = std::fs::read_dir(root)?

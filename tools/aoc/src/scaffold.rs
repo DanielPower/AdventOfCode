@@ -25,7 +25,6 @@ pub struct NewOpts<'a> {
     pub day: u8,
     pub part: Option<u8>,
     pub imp: Option<&'a str>,
-    /// Download the input (and any submitted answers) after scaffolding.
     pub fetch: bool,
 }
 
@@ -69,7 +68,6 @@ pub fn new_solution(ctx: &Ctx, engine: &Engine, impls: &[Impl], o: &NewOpts) -> 
         bail!("{} already has {sol}", imp.name());
     }
 
-    // Plan the template copy, refusing to overwrite anything.
     let mut copies = Vec::new();
     if let Some(t) = &cfg.template {
         let template_dir = imp.dir.join(t);

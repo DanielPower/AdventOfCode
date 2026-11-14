@@ -178,7 +178,6 @@ pub fn save(ctx: &Ctx) {
     }
 }
 
-/// Commit any changes in the data repository.
 fn commit(dir: &Path) -> Result<()> {
     git(dir, &["add", "--all"])?;
     let staged = git_text(dir, &["diff", "--cached", "--name-only"])?;

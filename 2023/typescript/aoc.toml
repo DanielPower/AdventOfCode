@@ -4,6 +4,5 @@ discover = "{dd}/{part}.ts"
 run = "bun run {dd}/{part}.ts"
 sources = "{dd}/{part}.ts"
 
-# `cargo aoc new YEAR DAY [PART]` copies template/, expanding {{year}} {{day}} {{dd}} {{part}}.
 [new]
 template = "template"

@@ -1,5 +1,4 @@
-# One stack project; Main dispatches on `day part`. Day 7 exists in src/ but
-# isn't wired into Main, so days are listed explicitly.
+# Day 7 exists in src/ but isn't wired into Main, so days are listed explicitly.
 language = "haskell"
 dockerfile = "Dockerfile"
 days = [1, 2, 3, 4, 5, 6]

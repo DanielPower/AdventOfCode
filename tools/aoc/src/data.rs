@@ -86,7 +86,6 @@ impl Expected {
             .collect()
     }
 
-    /// Hashable text for cache keys.
     pub fn as_key(&self) -> String {
         match self {
             Expected::Answer(a) => format!("answer:{}", a.trim()),

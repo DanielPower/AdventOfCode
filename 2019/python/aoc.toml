@@ -7,6 +7,5 @@ sources = "{dd}/{part}.py"
 [env]
 PYTHONDONTWRITEBYTECODE = "1"
 
-# `cargo aoc new YEAR DAY [PART]` copies template/, expanding {{year}} {{day}} {{dd}} {{part}}.
 [new]
 template = "template"

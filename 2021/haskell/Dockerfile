@@ -1,5 +1,3 @@
-# Toolchain for 2021/haskell: GHC 8.10.7 (as originally used) with the snapshot's
-# Hackage dependencies pre-built, so `aoc` builds and runs need no network.
 FROM docker.io/library/haskell:8.10.7@sha256:5c365dc081a22550cb4ca62f99a574f8583e8405689aa6a9d89fb21fa13724e9
 
 # The stack shipped in old GHC images can no longer verify Hackage's signing
