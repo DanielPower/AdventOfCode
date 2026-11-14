@@ -12,6 +12,7 @@ mod pipeline;
 mod pool;
 mod readme;
 mod results;
+mod scaffold;
 
 use anyhow::{Context, Result, bail};
 use clap::{Args, Parser, Subcommand};
@@ -37,6 +38,19 @@ struct Cli {
 enum Cmd {
     /// List implementations and the solutions they contain
     List(SelectArgs),
+    /// Scaffold a new solution from the implementation's [new] template/command
+    New {
+        year: u16,
+        day: u8,
+        /// Part to scaffold, for implementations with one project per part (default: 1)
+        part: Option<u8>,
+        /// Implementation, when the year has several
+        #[arg(long = "impl")]
+        imp: Option<String>,
+        /// Run the [new] command with the host's toolchain instead of the container
+        #[arg(long)]
+        native: bool,
+    },
     /// Build solutions (needs no puzzle data)
     Build {
         #[command(flatten)]
@@ -159,6 +173,7 @@ impl SelectArgs {
             sel: self.selector.unwrap_or_default(),
             imp: self.imp.clone(),
             since: self.since.clone(),
+            include_empty: false,
         }
     }
 }
@@ -179,9 +194,30 @@ fn run(cli: Cli) -> Result<bool> {
     match cli.cmd {
         Cmd::List(select) => {
             let impls = manifest::load_all(&ctx.root)?;
-            let work = pipeline::select(&ctx, &impls, &select.opts())?;
+            let opts = SelectOpts {
+                include_empty: select.selector.is_none_or(|s| s.day.is_none()),
+                ..select.opts()
+            };
+            let work = pipeline::select(&ctx, &impls, &opts)?;
             pipeline::list(&ctx, &impls, &work);
             Ok(true)
+        }
+        Cmd::New {
+            year,
+            day,
+            part,
+            imp,
+            native,
+        } => {
+            let impls = manifest::load_all(&ctx.root)?;
+            let engine = Engine { ctx: &ctx, native };
+            let opts = scaffold::NewOpts {
+                year,
+                day,
+                part,
+                imp: imp.as_deref(),
+            };
+            scaffold::new_solution(&ctx, &engine, &impls, &opts)
         }
         Cmd::Build { select, exec } => {
             let impls = manifest::load_all(&ctx.root)?;

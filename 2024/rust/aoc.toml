@@ -9,3 +9,9 @@ sources = "{dd}/part{part}"
 
 [env]
 CARGO_HOME = "{cache}/cargo-home"
+
+# `cargo aoc new YEAR DAY [PART]`: copy template/ (main.rs), then let the
+# pinned cargo create Cargo.toml (so the edition matches this toolchain) and a lockfile.
+[new]
+template = "template"
+command = "cargo init --quiet --vcs none --name part{part} {dd}/part{part} && cargo generate-lockfile --quiet --manifest-path {dd}/part{part}/Cargo.toml"

@@ -43,6 +43,22 @@ pub struct Manifest {
     /// Per-day overrides: `[day.12] timeout = "5m"`.
     #[serde(default)]
     pub day: BTreeMap<String, DayConfig>,
+    /// How `aoc new` scaffolds a solution.
+    pub new: Option<NewConfig>,
+}
+
+/// `[new]`: scaffolding for `aoc new YEAR DAY [PART]`. The template is copied
+/// first, then the command runs.
+#[derive(Deserialize, Debug, Default, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct NewConfig {
+    /// Directory (relative to the implementation) mirroring its layout. Its
+    /// files are copied in, with `{{year}} {{day}} {{dd}} {{part}}` expanded in
+    /// both file names and contents.
+    pub template: Option<String>,
+    /// Shell command run after copying, like `build` (in the toolchain
+    /// container, network allowed). Placeholders as in `build`.
+    pub command: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Default, Clone)]
@@ -183,6 +199,15 @@ pub fn load_impl(year: u16, dir: &Path) -> Result<Impl> {
     }
     if let Some(t) = &manifest.timeout {
         humantime::parse_duration(t).with_context(|| format!("bad timeout {t:?}"))?;
+    }
+    if let Some(new) = &manifest.new {
+        match (&new.template, &new.command) {
+            (None, None) => bail!("[new] needs a `template` directory, a `command`, or both"),
+            (Some(t), _) if !dir.join(t).is_dir() => {
+                bail!("[new] template directory {t:?} not found")
+            }
+            _ => {}
+        }
     }
     for (day, cfg) in &manifest.day {
         let d: u8 = day

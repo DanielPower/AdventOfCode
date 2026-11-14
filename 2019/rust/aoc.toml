@@ -5,3 +5,7 @@ discover = "{dd}/{part}.rs"
 build = "mkdir -p {cache}/bin && rustc -O --edition 2018 -o {cache}/bin/{dd}-{part} {dd}/{part}.rs"
 run = "{cache}/bin/{dd}-{part}"
 sources = "{dd}/{part}.rs"
+
+# `cargo aoc new YEAR DAY [PART]` copies template/, expanding {{year}} {{day}} {{dd}} {{part}}.
+[new]
+template = "template"

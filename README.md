@@ -111,7 +111,38 @@ CARGO_HOME = "{cache}/cargo-home"
 [day.12]                       # per-day overrides
 timeout = "5m"
 # parts = [1]                  # when `discover` has no {part}
+
+[new]                          # how `cargo aoc new` scaffolds a solution (optional)
+template = "template"          # copied in first (see below)
+command = "cargo init --vcs none --name part{part} {dd}/part{part}"  # then run like `build`
 ```
+
+### Scaffolding: `[new]`
+
+`cargo aoc new YEAR DAY [PART]` creates a solution from the implementation's `[new]` section:
+
+1. **`template`** names a folder that mirrors the implementation's layout. Its
+   files are copied in, with `{{year}} {{day}} {{dd}} {{part}}` expanded in both
+   file names and contents. The double braces keep code like Rust's
+   `println!("{day}")` or Python's `f"{day}"` intact. A Python implementation
+   whose `discover` is `{dd}/{part}.py` needs just one file:
+   `template/{{dd}}/{{part}}.py`.
+2. **`command`** (optional) then runs exactly like `build`: in the
+   implementation's pinned toolchain container, with network access and the
+   `{day} {dd} {part}` placeholders. Use it for anything a file copy can't do.
+   The Rust implementations copy `template/{{dd}}/part{{part}}/src/main.rs`,
+   then run `cargo init` and `cargo generate-lockfile`. Because the pinned `cargo`
+   does this, the edition and lockfile format always suit that toolchain.
+
+`new` never overwrites anything. If the command fails, everything it created is
+removed, so you can fix the problem and re-run. Templates belong to an
+implementation because they depend on its toolchain. For example, Bun 1.0.15's
+`Bun.stdin.text()` fails on piped input, so the 2023 template avoids it. When
+you start a new implementation, copy the previous one's `aoc.toml` and
+`template/` and adjust them.
+
+Implementations without `[new]`, such as the 2021/2022 Haskell projects (each new
+day also has to be registered in `Main.hs`), are set up by hand.
 
 Upgrading a toolchain is a deliberate edit to one implementation's manifest;
 nothing else moves. Start a new year (or a new compiler version) by adding a new
@@ -125,6 +156,8 @@ incrementally after that, so it works from anywhere in the repository.
 
 ```sh
 cargo aoc list                       # implementations and their solutions
+cargo aoc new 2025 8                 # scaffold day 8 part 1 from the [new] template
+cargo aoc new 2025 8 2               # ...and part 2 (--impl ID if the year has several)
 cargo aoc test 2025/7                # build, run and check day 7 (all implementations)
 cargo aoc test 2025 --impl rust      # one implementation
 cargo aoc test 2025/7/2 --examples   # against the examples instead of the real input
@@ -140,6 +173,42 @@ cargo aoc doctor                     # check the setup
 
 Selectors are `YEAR`, `YEAR/DAY` or `YEAR/DAY/PART`. Run `cargo aoc help <command>`
 for all options.
+
+## Workflow
+
+**New implementation** (a language in a year):
+
+1. Create `<year>/<name>/aoc.toml`. The easiest way is to copy the previous one
+   in that language, along with its `template/`. Set `image` to a plain tag,
+   such as `docker.io/library/rust:1.97.0-slim`.
+2. Run `cargo aoc toolchain pin <year>/<name>` to record the image's digest.
+3. Commit. `cargo aoc list` shows the new implementation with no days yet. Years
+   from 2025 on have 12 days.
+
+**New day:**
+
+1. `cargo aoc fetch 2026 8` downloads the input into the data repository (once the puzzle unlocks).
+2. `cargo aoc new 2026 8` scaffolds part 1, with the stdin boilerplate already written.
+3. Iterate. `cargo aoc run 2026 8 1 --native` is fast. `cargo aoc test 2026/8/1`
+   uses the pinned container, and prints `output: ...` until an answer is recorded.
+4. Submit the answer on adventofcode.com, then run `cargo aoc fetch 2026 8` again
+   to record it. Do the same for part 2, starting with `cargo aoc new 2026 8 2`.
+
+**Test cases:** example inputs come from the puzzle text, so they live in the
+data repository as well. Add `2026/08/1.txt` and an `examples.toml` with the
+expected answers (see [Puzzle data](#puzzle-data)), then run
+`cargo aoc test 2026/8 --examples`. Use `--input FILE` (or `-` for stdin) with
+`cargo aoc run` for one-off inputs.
+
+**Pushing:**
+
+1. Commit and push the data repository first: the input, `answers.toml` and any examples.
+2. Commit the solution (for Rust, its `Cargo.toml`, `Cargo.lock` and `src/`) and
+   push to `main`. A pull request from a branch is also checked against your
+   data, but only `main` updates the README.
+3. CI verifies the changed solutions and commits the progress table. Run
+   `git pull --rebase` before you next push. If the data arrived after the
+   solution, re-run the workflow from the Actions tab.
 
 ## Puzzle data
 

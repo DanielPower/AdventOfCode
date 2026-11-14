@@ -19,6 +19,8 @@ pub struct SelectOpts {
     pub sel: Selector,
     pub imp: Option<String>,
     pub since: Option<String>,
+    /// Keep implementations with no matching solutions (for `list`).
+    pub include_empty: bool,
 }
 
 /// (index into impls, selected solutions)
@@ -47,7 +49,7 @@ pub fn select(ctx: &Ctx, impls: &[Impl], o: &SelectOpts) -> Result<Work> {
             .copied()
             .filter(|&s| o.sel.matches(imp.year, s))
             .collect();
-        if !sols.is_empty() {
+        if !sols.is_empty() || o.include_empty {
             work.push((i, sols));
         }
     }
@@ -588,7 +590,11 @@ pub fn list(ctx: &Ctx, impls: &[Impl], work: &Work) {
             imp.name(),
             imp.manifest.language,
             toolchain,
-            days.join(" ")
+            if days.is_empty() {
+                "-".to_string()
+            } else {
+                days.join(" ")
+            }
         );
     }
 }

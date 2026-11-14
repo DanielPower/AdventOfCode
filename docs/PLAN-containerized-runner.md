@@ -20,8 +20,11 @@
 > * **The CI workflow has an optional Docker Hub login**, because anonymous
 >   pulls are rate-limited. **It also frees disk space**, because the Haskell
 >   images are about 6 GB each.
-> * **`aoc new`, `aoc watch` and `toolchain mirror` were not built.** They
->   remain possible follow-ups.
+> * **`aoc new` scaffolds from a per-implementation `[new]` section**: a
+>   template folder copied with `{{day}}`-style placeholders, then an optional
+>   command run in the toolchain container (e.g. `cargo init`).
+> * **`aoc watch` and `toolchain mirror` were not built.** They remain possible
+>   follow-ups.
 
 ## 1. How the repository works today
 
